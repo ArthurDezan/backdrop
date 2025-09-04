@@ -1,41 +1,55 @@
-import express from "express";
-import connection from "./db.js";
+const express = require("express");
+const bodyParser = require("body-parser");
+const helmet = require("helmet");
+const corsMiddleware = require("./middleware/cors");
+
+// Importar rotas
+const usuarioRoutes = require("./routes/usuario.routes");
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-// rota simples
-app.get("/", (req, res) => {
-  res.send("API funcionando 🚀");
+// Middlewares de segurança e configuração
+app.use(helmet()); // Adiciona cabeçalhos de segurança
+app.use(corsMiddleware); // Configuração de CORS
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
+// Middleware de log básico
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
 });
 
-// rota para listar usuários
-app.get("/usuarios", (req, res) => {
-  connection.query("SELECT * FROM usuarios", (err, results) => {
-    if (err) {
-      res.status(500).json({ error: "Erro no banco" });
-    } else {
-      res.json(results);
-    }
+// Rotas da API - ajustando para corresponder ao frontend
+app.use("/usuarios", usuarioRoutes);
+
+// Rota de teste geral
+app.get("/", (req, res) => {
+  res.json({
+    message: "API funcionando!",
+    timestamp: new Date().toISOString(),
   });
 });
 
-// rota para adicionar usuário
-app.post("/usuarios", (req, res) => {
-  const { nome, email } = req.body;
-  connection.query(
-    "INSERT INTO usuarios (nome, email) VALUES (?, ?)",
-    [nome, email],
-    (err, results) => {
-      if (err) {
-        res.status(500).json({ error: "Erro ao inserir" });
-      } else {
-        res.json({ id: results.insertId, nome, email });
-      }
-    }
-  );
+// Middleware de tratamento de erros global
+app.use((err, req, res, next) => {
+  console.error("Erro não tratado:", err);
+  res.status(500).json({
+    error: "Erro interno do servidor",
+    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
 });
 
-app.listen(3000, () => {
-  console.log("🚀 Servidor rodando em http://localhost:3000");
+// ✅ Middleware para rotas não encontradas (sem "*")
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Rota não encontrada",
+    path: req.originalUrl,
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Acesse: http://localhost:${PORT}`);
 });
