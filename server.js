@@ -1,30 +1,55 @@
 const express = require("express");
-const cors = require("cors");
-const usuarioRoutes = require("./routes/usuario.routes.js");
+const bodyParser = require("body-parser");
+const helmet = require("helmet");
+const corsMiddleware = require("./middleware/cors");
+
+// Importar rotas
+const usuarioRoutes = require("./routes/usuario.routes");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.use("/cadastro", usuarioRoutes);
+// Middlewares de segurança e configuração
+app.use(helmet()); // Adiciona cabeçalhos de segurança
+app.use(corsMiddleware); // Configuração de CORS
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 
-// Configuração do CORS
-app.use(cors({
-  origin: "http://localhost:8100", // endereço do front-end Ionic
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
-// Middleware para ler JSON
-app.use(express.json());
-
-// Rotas
-app.get("/", (req, res) => {
-  res.send("API do banco DROP funcionando 🚀");
+// Middleware de log básico
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
 });
 
+// Rotas da API - ajustando para corresponder ao frontend
 app.use("/usuarios", usuarioRoutes);
 
-// Iniciar servidor
-app.listen(3000, () => {
-  console.log("🚀 Servidor rodando em http://localhost:3000");
+// Rota de teste geral
+app.get("/", (req, res) => {
+  res.json({
+    message: "API funcionando!",
+    timestamp: new Date().toISOString(),
+  });
 });
 
+// Middleware de tratamento de erros global
+app.use((err, req, res, next) => {
+  console.error("Erro não tratado:", err);
+  res.status(500).json({
+    error: "Erro interno do servidor",
+    message: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
+
+// ✅ Middleware para rotas não encontradas (sem "*")
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Rota não encontrada",
+    path: req.originalUrl,
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Acesse: http://localhost:${PORT}`);
+});
