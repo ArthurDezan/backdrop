@@ -5,6 +5,7 @@ const corsMiddleware = require("./middleware/cors");
 
 // Importar rotas
 const usuarioRoutes = require("./routes/usuario.routes");
+const estabelecimentoRoutes = require('./routes/estabelecimento.routes')
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,8 +22,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rotas da API - ajustando para corresponder ao frontend
 app.use("/usuarios", usuarioRoutes);
+app.use('/estabelecimentos', estabelecimentoRoutes);
 
 // Rota de teste geral
 app.get("/", (req, res) => {
