@@ -26,7 +26,8 @@ app.use((req, res, next) => {
 // Registrar as rotas na aplicação
 app.use("/usuarios", usuarioRoutes);
 app.use('/estabelecimentos', estabelecimentoRoutes);
-app.use("/produtos", produtoRoutes); // ✅ 2. REGISTRAR AS ROTAS DE PRODUTOS
+app.use("/produtos", produtoRoutes);
+app.use(express.static('public'));
 
 // Rota de teste geral
 app.get("/", (req, res) => {
