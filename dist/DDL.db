@@ -1,29 +1,29 @@
+-- Configurações iniciais do MySQL
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
-CREATE SCHEMA IF NOT EXISTS `drop` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci ;
-USE `drop` ;
+-- Cria o Schema (banco de dados) se ele não existir
+CREATE SCHEMA IF NOT EXISTS `drop` DEFAULT CHARACTER SET utf8mb4;
+USE `drop`;
 
+-- Tabela de Categorias
 CREATE TABLE IF NOT EXISTS `drop`.`categorias` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(50) NOT NULL,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB
-AUTO_INCREMENT = 5
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+ENGINE = InnoDB;
 
+-- Tabela de Estabelecimentos
 CREATE TABLE IF NOT EXISTS `drop`.`estabelecimentos` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(150) NOT NULL,
   `localizacao` VARCHAR(200) NOT NULL,
   `tempo_de_espera` INT NULL DEFAULT NULL,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+ENGINE = InnoDB;
 
+-- Tabela de Usuários
 CREATE TABLE IF NOT EXISTS `drop`.`usuarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(100) NOT NULL,
@@ -33,11 +33,32 @@ CREATE TABLE IF NOT EXISTS `drop`.`usuarios` (
   `endereco` VARCHAR(200) NULL DEFAULT NULL,
   `numero_endereco` VARCHAR(10) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `email` (`email` ASC) VISIBLE)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+  UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
+ENGINE = InnoDB;
 
+-- Tabela de Produtos (VERSÃO ATUALIZADA)
+CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(150) NOT NULL,
+  `preco` DECIMAL(10,2) NOT NULL,
+  `descricao` TEXT NULL DEFAULT NULL,
+  `quantidade` INT NULL DEFAULT 0,
+  `categoria_id` INT NULL DEFAULT NULL,
+  `estabelecimento_id` INT NULL DEFAULT NULL, -- Coluna adicionada
+  PRIMARY KEY (`id`),
+  INDEX `fk_produtos_categorias_idx` (`categoria_id` ASC) VISIBLE,
+  INDEX `fk_produtos_estabelecimentos_idx` (`estabelecimento_id` ASC) VISIBLE, -- Índice para a nova coluna
+  CONSTRAINT `fk_produtos_categorias`
+    FOREIGN KEY (`categoria_id`)
+    REFERENCES `drop`.`categorias` (`id`),
+  CONSTRAINT `fk_produtos_estabelecimentos` -- Relação criada
+    FOREIGN KEY (`estabelecimento_id`)
+    REFERENCES `drop`.`estabelecimentos` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+-- Tabela de Pedidos
 CREATE TABLE IF NOT EXISTS `drop`.`pedidos` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `numero_pedido` VARCHAR(50) NOT NULL,
@@ -45,35 +66,18 @@ CREATE TABLE IF NOT EXISTS `drop`.`pedidos` (
   `usuario_id` INT NOT NULL,
   `estabelecimento_id` INT NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `numero_pedido` (`numero_pedido` ASC) VISIBLE,
-  INDEX `usuario_id` (`usuario_id` ASC) VISIBLE,
-  INDEX `estabelecimento_id` (`estabelecimento_id` ASC) VISIBLE,
-  CONSTRAINT `pedidos_ibfk_1`
+  UNIQUE INDEX `numero_pedido_UNIQUE` (`numero_pedido` ASC) VISIBLE,
+  INDEX `fk_pedidos_usuarios_idx` (`usuario_id` ASC) VISIBLE,
+  INDEX `fk_pedidos_estabelecimentos_idx` (`estabelecimento_id` ASC) VISIBLE,
+  CONSTRAINT `fk_pedidos_usuarios`
     FOREIGN KEY (`usuario_id`)
     REFERENCES `drop`.`usuarios` (`id`),
-  CONSTRAINT `pedidos_ibfk_2`
+  CONSTRAINT `fk_pedidos_estabelecimentos`
     FOREIGN KEY (`estabelecimento_id`)
     REFERENCES `drop`.`estabelecimentos` (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+ENGINE = InnoDB;
 
-CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `nome` VARCHAR(150) NOT NULL,
-  `preco` DECIMAL(10,2) NOT NULL,
-  `descricao` TEXT NULL DEFAULT NULL,
-  `quantidade` INT NULL DEFAULT '0',
-  `categoria_id` INT NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `categoria_id` (`categoria_id` ASC) VISIBLE,
-  CONSTRAINT `produtos_ibfk_1`
-    FOREIGN KEY (`categoria_id`)
-    REFERENCES `drop`.`categorias` (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
-
+-- Restaura as configurações do MySQL
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

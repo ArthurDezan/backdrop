@@ -1,133 +1,63 @@
 USE `drop`;
 
--- OBS: não alterei a tabela categorias nem usuarios (você pediu que permanecessem corretos).
--- Caso as categorias não existam, descomente os inserts abaixo (apenas se quiser recriar):
-/*
-INSERT INTO categorias (nome) VALUES
-  ('Comida'),
-  ('Mercado'),
-  ('Farmacia'),
-  ('Construção');
-*/
+-- Inserção de Categorias
+INSERT INTO categorias (id, nome) VALUES (1, 'Comida'), (2, 'Mercado'), (3, 'Farmacia'), (4, 'Construção')
+ON DUPLICATE KEY UPDATE nome=VALUES(nome);
 
--- ---------- Estabelecimentos: Marília, Bauru, Pompéia, Garça, Tupã, Araçatuba ----------
-INSERT INTO estabelecimentos (nome, localizacao, tempo_de_espera) VALUES
--- MARÍLIA (principais e conhecidos)
-('McDonald''s Marília - Fragata', 'Av. Tiradentes, Fragata, Marília - SP', 15),
-('Burger King Marília', 'Av. Tiradentes / Centro, Marília - SP', 20),
-('Subway Marília (unidade centro/shopping)', 'Marília - SP', NULL),
-('Donna Oliva Pizzaria', 'Av. Sampaio Vidal, Centro, Marília - SP', NULL),
-('Chaplin Gastronomia', 'Av. República, Cascata, Marília - SP', NULL),
-('Supermercado Amigão (Marília)', 'Marília - SP (unidades)', NULL),
-('Supermercados Kawakami (Marília)', 'Marília - SP (unidades)', NULL),
-('Drogasil Marília', 'Marília - SP', NULL),
+-- Inserção de Estabelecimentos
+INSERT INTO estabelecimentos (id, nome, localizacao, tempo_de_espera) VALUES
+(1, 'McDonald''s Marília - Fragata', 'Av. Tiradentes, Fragata, Marília - SP', 15),
+(2, 'Burger King Marília', 'Av. Tiradentes / Centro, Marília - SP', 20),
+(3, 'Subway Marília (unidade centro/shopping)', 'Marília - SP', 15),
+(4, 'Donna Oliva Pizzaria', 'Av. Sampaio Vidal, Centro, Marília - SP', 30),
+(5, 'Chaplin Gastronomia', 'Av. República, Cascata, Marília - SP', 35),
+(6, 'Supermercado Amigão (Marília)', 'Marília - SP (unidades)', 40),
+(7, 'Supermercados Kawakami (Marília)', 'Marília - SP (unidades)', 40),
+(8, 'Drogasil Marília', 'Marília - SP', 10),
+(9, 'Madero Bauru (Bauru Shopping)', 'Bauru - SP', 25),
+(10, 'Pizzaria Bambina Bauru', 'Bauru - SP', 30),
+(11, 'Casarão da Picanha Bauru', 'Bauru - SP', 45),
+(12, 'Atacadão Bauru', 'Bauru - SP', 50)
+ON DUPLICATE KEY UPDATE nome=VALUES(nome), localizacao=VALUES(localizacao), tempo_de_espera=VALUES(tempo_de_espera);
 
--- BAURU
-('Madero Bauru (Bauru Shopping)', 'Bauru - SP', NULL),
-('Pizzaria Bambina Bauru', 'Bauru - SP', NULL),
-('Casarão da Picanha Bauru', 'Bauru - SP', NULL),
-('Atacadão Bauru', 'Bauru - SP', NULL),
+-- Inserção de Produtos (com estabelecimento_id)
 
--- POMPÉIA
-('Narê Pompéia', 'Pompéia - SP', NULL),
-('Dom Galeto Grill - Pompéia', 'Pompéia - SP', NULL),
+-- ===== McDonald's (Ligados ao ID 1) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Big Mac', 29.90, 'Dois hambúrgueres 100% carne bovina, queijo, molho especial...', 200, 1, 1),
+('Quarterão com Queijo', 30.70, 'Hambúrguer bovino mais grosso, queijo, cebola, ketchup e mostarda', 150, 1, 1),
+('McNuggets 10 unidades', 17.01, '10 unidades de McNuggets acompanhadas de molhos', 200, 1, 1),
+('McFritas Média', 9.22, 'Batata frita média', 300, 1, 1),
+('McFlurry Ovomaltine', 12.50, 'Sobremesa McFlurry sabor Ovomaltine', 80, 1, 1);
 
--- GARÇA
-('Churrascaria Chimarrão Grill - Garça', 'Garça - SP', NULL),
-('Restaurante Gustoo - Garça', 'Garça - SP', NULL),
+-- ===== Burger King (Ligados ao ID 2) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Whopper', 25.90, 'Whopper: carne bovina, alface, tomate, picles, maionese...', 150, 1, 2),
+('Combo Whopper', 39.97, 'Whopper + batata média + bebida', 150, 1, 2),
+('Onion Rings (porção)', 14.50, 'Porção de onion rings', 80, 1, 2);
 
--- TUPÃ
-('McDonald''s Tupã', 'Av. Tamoios, Tupã - SP', NULL),
-('Supermercados Kawakami (Tupã)', 'Tupã - SP', NULL),
+-- ===== Subway (Ligados ao ID 3) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Sub 15cm - Frango Teriyaki', 23.90, 'Sanduíche Subway 15cm Frango Teriyaki', 120, 1, 3),
+('Sub 15cm - BMT', 24.90, 'BMT 15cm - presunto, salame, pepperoni', 120, 1, 3);
 
--- ARAÇATUBA
-('McDonald''s Araçatuba - Shopping', 'Shopping Praça Nova, Araçatuba - SP', NULL),
-('Atacadão Araçatuba', 'Araçatuba - SP', NULL);
+-- ===== Madero (Ligados ao ID 9) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Cheeseburger Madero', 48.00, 'Cheeseburger Madero com pão artesanal, carne, queijo...', 60, 1, 9),
+('Batata Frita Madero (porção)', 29.00, 'Porção de batata frita', 100, 1, 9);
 
--- ---------- Produtos (itens reais confirmados em cardápios / delivery)
--- Observação: usei SELECT para recuperar categoria_id pela coluna 'nome' (assumindo que 'Mercado','Comida','Farmacia','Construção' existam).
--- Se a sua tabela categorias tiver nomes diferentes (maiúsculas/minúsculas), ajuste a string do WHERE.
+-- ===== Donna Oliva (Ligados ao ID 4) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Pizza Marguerita', 55.00, 'Molho de tomate, muçarela, manjericão - pizza grande', 30, 1, 4),
+('Pizza Calabresa', 60.00, 'Calabresa fatiada, cebola e muçarela - pizza grande', 30, 1, 4);
 
--- ===== McDonald's (itens oficiais; preços nacionais / delivery como referência) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Big Mac', 29.90, 'Dois hambúrgueres 100% carne bovina, queijo, molho especial, alface, picles e cebola, pão com gergelim', 200, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Quarterão com Queijo', 30.70, 'Hambúrguer bovino mais grosso, queijo, cebola, ketchup e mostarda', 150, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('McNuggets 10 unidades', 17.01, '10 unidades de McNuggets acompanhadas de molhos', 200, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('McFritas Média', 9.22, 'Batata frita média', 300, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('McFlurry Ovomaltine (exemplo)', 12.50, 'Sobremesa McFlurry sabor Ovomaltine', 80, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Refrigerante Coca-Cola Lata 350ml', 4.90, 'Refrigerante Coca-Cola lata 350ml (valor delivery/loja)', 500, (SELECT id FROM categorias WHERE nome = 'Mercado' LIMIT 1));
+-- ===== Supermercados (Ligados ao ID 6) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Arroz Tipo 1 5kg', 28.90, 'Pacote de arroz tipo 1 - 5kg', 200, 2, 6),
+('Feijão Carioca 1kg', 9.50, 'Feijão carioca - 1kg', 300, 2, 6),
+('Óleo de Soja 900ml', 8.90, 'Óleo de cozinha 900ml', 250, 2, 6);
 
--- Fonte / verificação McDonald''s: cardápio oficial McDonald''s Brasil e agregadores de preços. :contentReference[oaicite:0]{index=0}
-
--- ===== Burger King (itens oficiais / preços médios) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Whopper', 25.90, 'Whopper: carne bovina, alface, tomate, picles, maionese, pão com gergelim', 150, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Combo Whopper (exemplo delivery)', 39.97, 'Whopper + batata média + bebida (valor médio delivery)', 150, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Onion Rings (porção)', 14.50, 'Porção de onion rings', 80, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1));
-
--- Fonte Burger King: cardápio oficial / agregadores. :contentReference[oaicite:1]{index=1}
-
--- ===== Subway (itens e faixas de preço) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Sub 15cm - Frango Teriyaki (exemplo)', 23.90, 'Sanduíche Subway 15cm Frango Teriyaki (valor médio 15cm)', 120, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Sub 15cm - BMT (exemplo)', 24.90, 'BMT 15cm - presunto, salame, pepperoni (valor médio 15cm)', 120, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Combo Sub 15cm + Acompanhamento + Bebida', 39.90, 'Combo Subway 15cm + acompanhamento + bebida (valor médio)', 100, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1));
-
--- Fonte Subway (cardápio e faixas de preço): Subway Brasil / agregadores. :contentReference[oaicite:2]{index=2}
-
--- ===== Madero (Bauru) - itens populares confirmados via cardápio do restaurante =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Cheeseburger Madero (prato clássico)', 48.00, 'Cheeseburger Madero com pão artesanal, carne, queijo e acompanhamentos (valor aproximado por restaurante)', 60, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Batata Frita Madero (porção)', 29.00, 'Porção de batata frita', 100, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Petit Gâteau de Doce de Leite', 28.00, 'Sobremesa Petit Gateau', 40, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1));
-
--- Fonte Madero (cardápio oficial / página do restaurante). :contentReference[oaicite:3]{index=3}
-
--- ===== Donna Oliva (Marília) - pizzas reais (itens e preços do delivery/site) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Pizza Marguerita - Donna Oliva', 55.00, 'Molho de tomate, muçarela, manjericão - pizza grande (preço iFood/site)', 30, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Pizza Calabresa - Donna Oliva', 60.00, 'Calabresa fatiada, cebola e muçarela - pizza grande', 30, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Pizza Portuguesa - Donna Oliva', 65.00, 'Presunto, ovo, cebola, muçarela - pizza grande', 30, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Pizza Nutella - Donna Oliva (sobremesa)', 45.00, 'Nutella e morangos - pizza sobremesa', 20, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1));
-
--- Fonte Donna Oliva: cardápio em plataformas de delivery / página local. :contentReference[oaicite:4]{index=4}
-
--- ===== Supermercados (produto real de mercado) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Arroz Tipo 1 5kg', 28.90, 'Pacote de arroz tipo 1 - 5kg (preço médio supermercado)', 200, (SELECT id FROM categorias WHERE nome = 'Mercado' LIMIT 1)),
-('Feijão Carioca 1kg', 9.50, 'Feijão carioca - 1kg (preço médio)', 300, (SELECT id FROM categorias WHERE nome = 'Mercado' LIMIT 1)),
-('Óleo de Soja 900ml', 8.90, 'Óleo de cozinha 900ml (preço médio)', 250, (SELECT id FROM categorias WHERE nome = 'Mercado' LIMIT 1));
-
--- Fonte supermercados locais / médias de preços: pesquisa agregada (mercado local / delivery). :contentReference[oaicite:5]{index=5}
-
--- ===== Farmácia (itens OTC, presentes em drogarias como Drogasil/Droga Raia) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Dipirona 500mg - 20 comprimidos', 6.50, 'Analgésico/antitérmico - caixa com 20', 150, (SELECT id FROM categorias WHERE nome = 'Farmacia' LIMIT 1)),
-('Paracetamol 500mg - 10 comprimidos', 7.90, 'Analgésico/antitérmico - caixa com 10', 150, (SELECT id FROM categorias WHERE nome = 'Farmacia' LIMIT 1)),
-('Solução Fisiológica 0,9% 500ml', 12.50, 'Solução para uso tópico/levar', 80, (SELECT id FROM categorias WHERE nome = 'Farmacia' LIMIT 1));
-
--- Fonte drogarias e listas de preços (Drogasil, Droga Raia, agregadores). :contentReference[oaicite:6]{index=6}
-
--- ===== Construção (materiais - lojas regionais / atacadistas) =====
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Cimento CP II 50kg', 32.00, 'Saco de cimento 50kg', 500, (SELECT id FROM categorias WHERE nome = 'Construção' LIMIT 1)),
-('Areia Lavada 1m3', 160.00, 'Areia para construção (m³)', 100, (SELECT id FROM categorias WHERE nome = 'Construção' LIMIT 1)),
-('Tijolo Baiano (unidade)', 1.20, 'Tijolo baiano comum - preço por unidade (valor médio)', 2000, (SELECT id FROM categorias WHERE nome = 'Construção' LIMIT 1));
-
--- ===== Itens/Produtos específicos por cidade (exemplos reais / delivery local) =====
--- Bauru: Pizzaria Bambina / Casarão da Picanha / Madero - itens já incluídos por acima (Madero).
-INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id) VALUES
-('Pizza Portuguesa - Pizzaria Bambina (Bauru exemplo)', 58.00, 'Pizza Portuguesa (valor aproximado baseado em cardápio local)', 25, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1)),
-('Picanha Fatiada - Casarão da Picanha (prato)', 89.90, 'Prato picanha fatiada com acompanhamentos', 30, (SELECT id FROM categorias WHERE nome = 'Comida' LIMIT 1));
-
--- Tupã: McDonald''s Tupã e Kawakami (produtos já representados por itens de cadeia / supermercado).
--- Araçatuba: McDonald''s Araçatuba (itens de cadeia já cobertos).
-
--- ===========================
--- Pedidos de exemplo (ligando a estabelecimentos reais)
--- ===========================
--- ATENÇÃO: substitua os ids de usuario (1,2,3) por ids reais da sua tabela usuarios se necessário.
-INSERT INTO pedidos (numero_pedido, valor_total, usuario_id, estabelecimento_id) VALUES
-('PED-2025-0001', 29.90, 1, (SELECT id FROM estabelecimentos WHERE nome = 'McDonald''s Marília - Fragata' LIMIT 1)),
-('PED-2025-0002', 65.00, 2, (SELECT id FROM estabelecimentos WHERE nome = 'Donna Oliva Pizzaria' LIMIT 1)),
-('PED-2025-0003', 39.97, 3, (SELECT id FROM estabelecimentos WHERE nome = 'Burger King Marília' LIMIT 1));
+-- ===== Farmácia (Ligados ao ID 8) =====
+INSERT INTO produtos (nome, preco, descricao, quantidade, categoria_id, estabelecimento_id) VALUES
+('Dipirona 500mg - 20 comprimidos', 6.50, 'Analgésico/antitérmico - caixa com 20', 150, 3, 8),
+('Paracetamol 500mg - 10 comprimidos', 7.90, 'Analgésico/antitérmico - caixa com 10', 150, 3, 8);
