@@ -6,16 +6,25 @@ const corsMiddleware = require("./middleware/cors");
 // Importar rotas
 const usuarioRoutes = require("./routes/usuario.routes");
 const estabelecimentoRoutes = require('./routes/estabelecimento.routes');
-const produtoRoutes = require("./routes/produto.routes"); // ✅ 1. IMPORTAR AS ROTAS DE PRODUTOS
+const produtoRoutes = require("./routes/produto.routes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ======================================================
+// ✅ CORREÇÃO AQUI
+// ======================================================
 // Middlewares de segurança e configuração
-app.use(helmet());
-app.use(corsMiddleware);
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Permite que imagens sejam carregadas de outras origens
+}));
+// ======================================================
+
+app.use(corsMiddleware); // A sua configuração de CORS continua a mesma
+app.use(express.static('public')); // A sua configuração de ficheiros estáticos também
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
 
 // Middleware de log básico
 app.use((req, res, next) => {
@@ -23,11 +32,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Registrar as rotas na aplicação
+// Registar as rotas na aplicação
 app.use("/usuarios", usuarioRoutes);
 app.use('/estabelecimentos', estabelecimentoRoutes);
 app.use("/produtos", produtoRoutes);
-app.use(express.static('public'));
 
 // Rota de teste geral
 app.get("/", (req, res) => {
@@ -37,7 +45,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Middleware de tratamento de erros global
+// Middlewares de erro (sem alteração)
 app.use((err, req, res, next) => {
   console.error("Erro não tratado:", err);
   res.status(500).json({
@@ -46,7 +54,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Middleware para rotas não encontradas
 app.use((req, res) => {
   res.status(404).json({
     error: "Rota não encontrada",
