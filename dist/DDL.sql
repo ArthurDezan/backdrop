@@ -40,7 +40,12 @@ CREATE TABLE IF NOT EXISTS `drop`.`estabelecimentos` (
   `tempo_de_espera` INT NULL DEFAULT NULL,
   `logo_url` VARCHAR(255) NULL DEFAULT NULL,
   `banner_url` VARCHAR(255) NULL DEFAULT NULL,
-  PRIMARY KEY (`id`))
+  `categoria_id` INT NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_estabelecimentos_categorias_idx` (`categoria_id` ASC) VISIBLE,
+  CONSTRAINT `fk_estabelecimentos_categorias`
+    FOREIGN KEY (`categoria_id`)
+    REFERENCES `drop`.`categorias` (`id`))
 ENGINE = InnoDB
 AUTO_INCREMENT = 13
 DEFAULT CHARACTER SET = utf8mb4
@@ -61,7 +66,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`usuarios` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 7
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
