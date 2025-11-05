@@ -110,3 +110,35 @@ exports.atualizarUsuario = async (req, res) => {
         return res.status(500).json({ error });
     }
 };
+
+exports.getUsuarioLogado = async (req, res) => {
+    try {
+      // O ID do usuário é pego do middleware 'login.require'
+      //
+      const idUsuario = res.locals.idUsuario; 
+  
+      if (!idUsuario) {
+        return res.status(401).json({ error: "Usuário não autenticado via token." });
+      }
+  
+      const [rows] = await mysql.execute(
+        'SELECT * FROM usuarios WHERE id = ?',
+        [idUsuario]
+      );
+  
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: "Usuário não encontrado." });
+      }
+  
+      const usuario = rows[0];
+      
+      // NUNCA retorne a senha, mesmo que hasheada
+      const { senha: _, ...dadosUsuario } = usuario;
+  
+      return res.status(200).json(dadosUsuario); // Retorna os dados do usuário
+  
+    } catch (error) {
+      console.error("Erro em getUsuarioLogado:", error);
+      return res.status(500).json({ error: "Erro interno no servidor" });
+    }
+  };
