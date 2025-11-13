@@ -27,7 +27,7 @@ INSERT INTO `estabelecimentos` (`id`, `nome`, `localizacao`, `tempo_de_espera`, 
 (9, 'Madero Bauru (Bauru Shopping)', 'Bauru - SP', 25, 1, 'http://localhost:3000/images/madero-logo-0.png', 'http://localhost:3000/images/madero.jpg'),
 (10, 'Pizzaria Bambina Bauru', 'Bauru - SP', 30, 1, 'http://localhost:3000/images/bambina_logo.png', 'http://localhost:3000/images/bambina.jpg'),
 (11, 'Casarão da Picanha Bauru', 'Bauru - SP', 45, 1, 'http://localhost:3000/images/casarao_logo.avif', 'http://localhost:3000/images/casarao.jpg'),
-(12, 'Atacadão Bauru', 'Bauru - SP', 50, 2, 'http://localhost:3000/images/atacadao_logo.jpg', 'http://localhost:3000/images/atacadao.jpg'),
+(12, 'Atacadão Bauru', 'Bauru - SP', 50, 2, 'http://localhost:3000/images/atacadao_logo.jpg', 'http://localhost:3000/images/atacadao.jpg')
 ON DUPLICATE KEY UPDATE 
   `nome`=VALUES(`nome`), 
   `localizacao`=VALUES(`localizacao`), 
