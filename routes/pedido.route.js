@@ -1,14 +1,10 @@
-// routes/pedido.routes.js
 const express = require("express");
 const router = express.Router();
 const pedidoController = require("../controller/pedido.controller");
 
-// Rota para o Angular chamar e criar a sessão
-// Ex: POST http://localhost:3000/pedidos/criar-checkout
-router.post("/criar-checkout", pedidoController.criarSessaoCheckout);
+// Rota para criar a sessão de pagamento (esta rota usa o parser JSON)
+router.post("/create-checkout-session", pedidoController.criarSessaoCheckout);
 
-// Rota para o Stripe chamar (webhook)
-// Ex: POST http://localhost:3000/pedidos/webhook
-router.post("/webhook", pedidoController.handleWebhook);
+// A rota /webhook foi movida para o server.js para lidar com o parser 'raw'
 
 module.exports = router;

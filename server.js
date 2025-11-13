@@ -1,8 +1,5 @@
-// Carrega as variáveis de ambiente do .env
-require("dotenv").config(); 
-
 const express = require("express");
-const bodyParser = require("body-parser"); // Usado para as rotas JSON normais
+const bodyParser = require("body-parser"); // Precisamos dos dois tipos de parser
 const helmet = require("helmet");
 const corsMiddleware = require("./middleware/cors");
 
@@ -10,57 +7,48 @@ const corsMiddleware = require("./middleware/cors");
 const usuarioRoutes = require("./routes/usuario.routes");
 const estabelecimentoRoutes = require('./routes/estabelecimento.routes');
 const produtoRoutes = require("./routes/produto.routes");
-const pedidoRoutes = require("./routes/pedido.route"); // ✅ 1. Importar rotas de pedido
+const pedidoRoutes = require('./routes/pedido.route'); // Rota de Pedido
 
-// ✅ Importar o handler do webhook DIRETAMENTE do controller
-const { handleWebhook } = require("./controller/pedido.controller");
+// Importar o controller SÓ para o webhook
+const pedidoController = require('./controller/pedido.controller');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ======================================================
-// Middlewares de segurança e configuração
-// ======================================================
 app.use(helmet({
-  crossOriginResourcePolicy: false, // Permite que imagens sejam carregadas
+  crossOriginResourcePolicy: false,
 }));
-app.use(corsMiddleware); // Seu middleware de CORS
-app.use(express.static('public')); // Servir arquivos estáticos (imagens)
+app.use(corsMiddleware);
+app.use(express.static('public'));
+
+// ======================================================
+// ✅ CORREÇÃO AQUI
+// ======================================================
+
+// 1. ROTA DE WEBHOOK (ANTES DE TUDO)
+// Esta rota é especial e precisa do "body-parser" raw.
+// O Stripe envia dados puros para verificação de assinatura.
+app.post("/pedidos/webhook", bodyParser.raw({ type: 'application/json' }), pedidoController.handleWebhook);
+
+// 2. PARSERS GLOBAIS (PARA TODAS AS OUTRAS ROTAS)
+// Agora, usamos o parser JSON e URLencoded para o resto da API.
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
+// 3. REGISTO DAS OUTRAS ROTAS
+// Estas rotas usarão os parsers JSON definidos acima.
+app.use("/usuarios", usuarioRoutes);
+app.use('/estabelecimentos', estabelecimentoRoutes);
+app.use("/produtos", produtoRoutes);
+app.use("/pedidos", pedidoRoutes); // Esta rota agora só vai lidar com o create-checkout-session
+
+// ======================================================
 
 // Middleware de log básico
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
-
-// ======================================================
-// ✅ IMPORTANTE: ROTA DE WEBHOOK DO STRIPE
-// Esta rota deve vir ANTES do bodyParser.json() global.
-// O Stripe precisa do "corpo" (body) cru (raw) para verificar a assinatura.
-// ======================================================
-app.post(
-  "/pedidos/webhook", 
-  express.raw({ type: "application/json" }), 
-  handleWebhook // Chama a função do controller diretamente
-);
-
-// ======================================================
-// ✅ Parsers JSON para TODAS AS OUTRAS rotas
-// ======================================================
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
-
-
-// ======================================================
-// Registar as rotas na aplicação
-// ======================================================
-app.use("/usuarios", usuarioRoutes);
-app.use('/estabelecimentos', estabelecimentoRoutes);
-app.use("/produtos", produtoRoutes);
-
-// ✅ Esta rota agora lidará com /pedidos/criar-checkout
-// (pois /pedidos/webhook já foi processado acima)
-app.use("/pedidos", pedidoRoutes); 
 
 // Rota de teste geral
 app.get("/", (req, res) => {
@@ -70,9 +58,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// ======================================================
-// Middlewares de erro (sem alteração)
-// ======================================================
+// Middleware de tratamento de erros global
 app.use((err, req, res, next) => {
   console.error("Erro não tratado:", err);
   res.status(500).json({
@@ -88,9 +74,6 @@ app.use((req, res) => {
   });
 });
 
-// ======================================================
-// Iniciar o servidor
-// ======================================================
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Acesse: http://localhost:${PORT}`);
