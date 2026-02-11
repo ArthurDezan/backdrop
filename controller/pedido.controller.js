@@ -3,7 +3,7 @@ require("dotenv").config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const mysql = require("../config/mysql"); // Nosso pool do banco
 
-// 1. FUNÇÃO PARA CRIAR A SESSÃO DE CHECKOUT (Esta função continua igual)
+// 1. FUNÇÃO PARA CRIAR A SESSÃO DE CHECKOUT
 exports.criarSessaoCheckout = async (req, res) => {
   const { cartItems, usuarioId, estabelecimentoId } = req.body;
 
@@ -56,6 +56,26 @@ exports.criarSessaoCheckout = async (req, res) => {
     console.error("Erro ao criar sessão Stripe:", error);
     res.status(500).json({ error: error.message });
   }
+};
+
+exports.criarPagamentoIntencao = async (req, res) => {
+    try {
+        // Recebe o valor (em centavos) que veio do aplicativo
+        const { amount } = req.body;
+
+        // Pede ao Stripe para criar uma intenção de pagamento
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amount,
+            currency: 'brl', // Configura a moeda para Reais Brasileiros
+        });
+
+        // Devolve o código secreto gerado para o seu aplicativo Angular
+        res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error) {
+        console.error("Erro ao criar intenção de pagamento no Stripe:", error);
+        // Retorna um erro 500 (Erro Interno) caso algo dê errado
+        res.status(500).json({ error: error.message });
+    }
 };
 
 
