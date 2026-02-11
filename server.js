@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require("express");
 const bodyParser = require("body-parser"); // Precisamos dos dois tipos de parser
 const helmet = require("helmet");
