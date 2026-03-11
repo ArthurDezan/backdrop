@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS `drop`.`estabelecimentos` (
   `logo_url` VARCHAR(255) NULL DEFAULT NULL,
   `banner_url` VARCHAR(255) NULL DEFAULT NULL,
   `categoria_id` INT NULL DEFAULT NULL,
+  `latitude` DECIMAL(10,8) NULL DEFAULT NULL,
+  `longitude` DECIMAL(11,8) NULL DEFAULT NULL,
+  `mapa_url` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_estabelecimentos_categorias_idx` (`categoria_id` ASC) VISIBLE,
   CONSTRAINT `fk_estabelecimentos_categorias`
@@ -116,7 +119,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
     FOREIGN KEY (`estabelecimento_id`)
     REFERENCES `drop`.`estabelecimentos` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 20
+AUTO_INCREMENT = 43
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 

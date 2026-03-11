@@ -13,31 +13,34 @@ ON DUPLICATE KEY UPDATE `nome`=VALUES(`nome`);
 
 
 -- -----------------------------------------------------
--- Inserir Estabelecimentos (com categoria_id, logo_url e banner_url)
+-- Inserir Estabelecimentos (Atualizado com Latitude, Longitude e mapa_url)
 -- -----------------------------------------------------
-INSERT INTO `estabelecimentos` (`id`, `nome`, `localizacao`, `tempo_de_espera`, `categoria_id`, `logo_url`, `banner_url`) VALUES
-(1, 'McDonald\'s Marília - Fragata', 'Av. Tiradentes, Fragata, Marília - SP', 15, 1, 'http://localhost:3000/images/mc_logo.jpg', 'http://localhost:3000/images/mcdonalds.webp'),
-(2, 'Burger King Marília', 'Av. Tiradentes / Centro, Marília - SP', 20, 1, 'http://localhost:3000/images/bk_logo.webp', 'http://localhost:3000/images/bk.jpg'),
-(3, 'Subway Marília', 'Marília - SP', 15, 1, 'http://localhost:3000/images/subway_logo.jpg', 'http://localhost:3000/images/SUBWAY.webp'),
-(4, 'Donna Oliva Pizzaria', 'Av. Sampaio Vidal, Centro, Marília - SP', 30, 1, 'http://localhost:3000/images/donnaoliva_logo.png', 'http://localhost:3000/images/DONNA_OLIVA_PIZZARIA_b31f301604.png'),
-(5, 'Chaplin Gastronomia', 'Av. República, Cascata, Marília - SP', 35, 1, 'http://localhost:3000/images/chaplin_logo.png', 'http://localhost:3000/images/chaplin-restaurante-e-pizzaria.jpg'),
-(6, 'Supermercado Amigão (Marília)', 'Marília - SP (unidades)', 40, 2, 'http://localhost:3000/images/amigao_logo.png', 'http://localhost:3000/images/Amigao-925x400.png'),
-(7, 'Supermercados Kawakami (Marília)', 'Marília - SP (unidades)', 40, 2, 'http://localhost:3000/images/supermercados_kawakami_logo.jpg', 'http://localhost:3000/images/kawakami.jpg'),
-(8, 'Drogasil Marília', 'Marília - SP', 10, 3, 'http://localhost:3000/images/drogasil_logo.png', 'http://localhost:3000/images/drogasil.webp'),
-(9, 'Madero Bauru (Bauru Shopping)', 'Bauru - SP', 25, 1, 'http://localhost:3000/images/madero-logo-0.png', 'http://localhost:3000/images/madero.jpg'),
-(10, 'Pizzaria Bambina Bauru', 'Bauru - SP', 30, 1, 'http://localhost:3000/images/bambina_logo.png', 'http://localhost:3000/images/bambina.jpg'),
-(11, 'Casarão da Picanha Bauru', 'Bauru - SP', 45, 1, 'http://localhost:3000/images/casarao_logo.avif', 'http://localhost:3000/images/casarao.jpg'),
-(12, 'Atacadão Bauru', 'Bauru - SP', 50, 2, 'http://localhost:3000/images/atacadao_logo.jpg', 'http://localhost:3000/images/atacadao.jpg')
+INSERT INTO `estabelecimentos` (`id`, `nome`, `localizacao`, `tempo_de_espera`, `categoria_id`, `logo_url`, `banner_url`, `latitude`, `longitude`, `mapa_url`) VALUES
+(1, 'McDonald\'s Marília - Fragata', 'Av. Tiradentes, Fragata, Marília - SP', 15, 1, 'http://localhost:3000/images/mc_logo.jpg', 'http://localhost:3000/images/mcdonalds.webp', -22.226330, -49.948250, 'http://localhost:3000/images/mapa_mcdonalds.png'),
+(2, 'Burger King Marília', 'Av. Tiradentes / Centro, Marília - SP', 20, 1, 'http://localhost:3000/images/bk_logo.webp', 'http://localhost:3000/images/bk.jpg', -22.225570, -49.950120, 'http://localhost:3000/images/mapa_burgerking.png'),
+(3, 'Subway Marília', 'Marília - SP', 15, 1, 'http://localhost:3000/images/subway_logo.jpg', 'http://localhost:3000/images/SUBWAY.webp', -22.221220, -49.948710, 'http://localhost:3000/images/mapa_subway.png'),
+(4, 'Donna Oliva Pizzaria', 'Av. Sampaio Vidal, Centro, Marília - SP', 30, 1, 'http://localhost:3000/images/donnaoliva_logo.png', 'http://localhost:3000/images/DONNA_OLIVA_PIZZARIA_b31f301604.png', -22.234150, -49.954820, 'http://localhost:3000/images/mapa_donnaoliva.png'),
+(5, 'Chaplin Gastronomia', 'Av. República, Cascata, Marília - SP', 35, 1, 'http://localhost:3000/images/chaplin_logo.png', 'http://localhost:3000/images/chaplin-restaurante-e-pizzaria.jpg', -22.210420, -49.958740, 'http://localhost:3000/images/mapa_chaplin.png'),
+(6, 'Supermercado Amigão (Marília)', 'Marília - SP (unidades)', 40, 2, 'http://localhost:3000/images/amigao_logo.png', 'http://localhost:3000/images/Amigao-925x400.png', -22.220000, -49.940000, 'http://localhost:3000/images/mapa_amigao.png'),
+(7, 'Supermercados Kawakami (Marília)', 'Marília - SP (unidades)', 40, 2, 'http://localhost:3000/images/supermercados_kawakami_logo.jpg', 'http://localhost:3000/images/kawakami.jpg', -22.230000, -49.960000, 'http://localhost:3000/images/mapa_kawakami.png'),
+(8, 'Drogasil Marília', 'Marília - SP', 10, 3, 'http://localhost:3000/images/drogasil_logo.png', 'http://localhost:3000/images/drogasil.webp', -22.221000, -49.950000, 'http://localhost:3000/images/mapa_drogasil.png'),
+(9, 'Madero Bauru (Bauru Shopping)', 'Bauru - SP', 25, 1, 'http://localhost:3000/images/madero-logo-0.png', 'http://localhost:3000/images/madero.jpg', -22.326500, -49.070000, 'http://localhost:3000/images/mapa_madero.png'),
+(10, 'Pizzaria Bambina Bauru', 'Bauru - SP', 30, 1, 'http://localhost:3000/images/bambina_logo.png', 'http://localhost:3000/images/bambina.jpg', -22.330000, -49.060000, 'http://localhost:3000/images/mapa_bombinapizzaria.png'),
+(11, 'Casarão da Picanha Bauru', 'Bauru - SP', 45, 1, 'http://localhost:3000/images/casarao_logo.avif', 'http://localhost:3000/images/casarao.jpg', -22.340000, -49.080000, 'http://localhost:3000/images/mapa_casarao.png'),
+(12, 'Atacadão Bauru', 'Bauru - SP', 50, 2, 'http://localhost:3000/images/atacadao_logo.jpg', 'http://localhost:3000/images/atacadao.jpg', -22.310000, -49.050000, 'http://localhost:3000/images/mapa_atacadao.png')
 ON DUPLICATE KEY UPDATE 
   `nome`=VALUES(`nome`), 
   `localizacao`=VALUES(`localizacao`), 
   `tempo_de_espera`=VALUES(`tempo_de_espera`), 
   `categoria_id`=VALUES(`categoria_id`), 
   `logo_url`=VALUES(`logo_url`), 
-  `banner_url`=VALUES(`banner_url`);
+  `banner_url`=VALUES(`banner_url`),
+  `latitude`=VALUES(`latitude`),
+  `longitude`=VALUES(`longitude`),
+  `mapa_url`=VALUES(`mapa_url`);
 
 -- -----------------------------------------------------
--- Inserir Produtos (com categoria_id e estabelecimento_id)
+-- Inserir Produtos (Mantido exatamente como o seu original)
 -- -----------------------------------------------------
 INSERT INTO `produtos` (`nome`, `preco`, `descricao`, `quantidade`, `categoria_id`, `estabelecimento_id`) VALUES
 -- McDonald's (ID 1)
