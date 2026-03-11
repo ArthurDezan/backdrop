@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser"); // Precisamos dos dois tipos de parser
 const helmet = require("helmet");
 const corsMiddleware = require("./middleware/cors");
+const authRoutes = require('./routes/auth.routes'); // ✅ NOVO
 
 // Importar rotas
 const usuarioRoutes = require("./routes/usuario.routes");
@@ -42,6 +43,7 @@ app.use("/usuarios", usuarioRoutes);
 app.use('/estabelecimentos', estabelecimentoRoutes);
 app.use("/produtos", produtoRoutes);
 app.use("/pedidos", pedidoRoutes); // Esta rota agora só vai lidar com o create-checkout-session
+app.use('/auth', authRoutes); // ✅ NOVO
 
 // ======================================================
 

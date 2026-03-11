@@ -38,14 +38,11 @@ exports.criarSessaoCheckout = async (req, res) => {
       payment_method_types: ['card'],
       line_items: line_items,
       mode: 'payment',
-      success_url: 'http://localhost:8100/sacola?pagamento=sucesso',
+      success_url: 'http://localhost:8100/sacola?pagamento=sucesso&session_id={CHECKOUT_SESSION_ID}',
       cancel_url: 'http://localhost:8100/sacola?pagamento=cancelado',
-      
-      // Os metadados que já estávamos enviando. Vamos usá-los no webhook.
       metadata: {
         usuario_id: usuarioId,
         estabelecimento_id: estabelecimentoId,
-        // Usamos nomes curtos (n, q, p) para economizar espaço
         items_json: JSON.stringify(cartItems.map(p => ({ n: p.name, q: p.quantity, p: p.price })))
       }
     });
@@ -60,26 +57,22 @@ exports.criarSessaoCheckout = async (req, res) => {
 
 exports.criarPagamentoIntencao = async (req, res) => {
     try {
-        // Recebe o valor (em centavos) que veio do aplicativo
         const { amount } = req.body;
 
-        // Pede ao Stripe para criar uma intenção de pagamento
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
-            currency: 'brl', // Configura a moeda para Reais Brasileiros
+            currency: 'brl',
         });
 
-        // Devolve o código secreto gerado para o seu aplicativo Angular
         res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
         console.error("Erro ao criar intenção de pagamento no Stripe:", error);
-        // Retorna um erro 500 (Erro Interno) caso algo dê errado
         res.status(500).json({ error: error.message });
     }
 };
 
 
-// 2. FUNÇÃO DO WEBHOOK (QUE SALVA NO BANCO)
+// 2. FUNÇÃO DO WEBHOOK (mantida, mas só funciona com Stripe CLI ativo)
 exports.handleWebhook = async (req, res) => {
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
@@ -98,28 +91,30 @@ exports.handleWebhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Ouve o evento de "Pagamento Concluído"
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
 
-    // Pega os metadados
     const metadata = session.metadata;
     const usuarioId = metadata.usuario_id;
     const estabelecimentoId = metadata.estabelecimento_id;
     const valorTotal = session.amount_total / 100; 
-    const numeroPedido = session.id; // ID do Stripe
+    const numeroPedido = session.id;
     
-    // ✅ Decodifica os itens do carrinho que enviamos
-    const items = JSON.parse(metadata.items_json);
+    let items = [];
+    try {
+      items = JSON.parse(metadata.items_json);
+    } catch(e) {
+      console.error('❌ Falha ao parsear items_json:', metadata.items_json);
+      return res.status(500).json({ error: 'items_json corrompido' });
+    }
 
     try {
-      // ✅ Chama a nova função (que usa transação)
       await salvarPedidoCompletoNoBanco(
         numeroPedido, 
         valorTotal, 
         usuarioId, 
         estabelecimentoId,
-        items // Passa os itens para a função
+        items
       );
       console.log(`[Sucesso] Pedido ${numeroPedido} e seus itens foram salvos no banco.`);
 
@@ -133,18 +128,63 @@ exports.handleWebhook = async (req, res) => {
 };
 
 
-// 3. ✅ NOVA FUNÇÃO AUXILIAR COM TRANSAÇÃO
+// 3. CONFIRMAR PEDIDO via frontend (sem precisar do Stripe CLI)
+exports.confirmarPedido = async (req, res) => {
+  const { cartItems, usuarioId, estabelecimentoId, sessionId } = req.body;
+
+  if (!cartItems || !usuarioId || !estabelecimentoId || !sessionId) {
+    return res.status(400).json({ error: 'Faltam dados para confirmar o pedido.' });
+  }
+
+  try {
+    // Verifica com o Stripe se a sessão realmente foi paga
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== 'paid') {
+      return res.status(402).json({ error: 'Pagamento não confirmado pelo Stripe.' });
+    }
+
+    // ✅ CORRIGIDO: usa getConnection em vez de mysql.execute diretamente
+    const conn = await mysql.getConnection();
+    const [pedidoExistente] = await conn.execute(
+      'SELECT id FROM pedidos WHERE numero_pedido = ?',
+      [sessionId]
+    );
+    conn.release();
+
+    if (pedidoExistente.length > 0) {
+      console.log(`[Info] Pedido ${sessionId} já existe no banco. Ignorando duplicata.`);
+      return res.status(200).json({ success: true, message: 'Pedido já registrado.' });
+    }
+
+    const valorTotal = session.amount_total / 100;
+
+    await salvarPedidoCompletoNoBanco(
+      sessionId,
+      valorTotal,
+      usuarioId,
+      estabelecimentoId,
+      cartItems.map(p => ({ n: p.name, q: p.quantity, p: p.price }))
+    );
+
+    console.log(`[Sucesso] Pedido ${sessionId} confirmado e salvo no banco.`);
+    res.status(200).json({ success: true, message: 'Pedido salvo com sucesso!' });
+
+  } catch (error) {
+    console.error('Erro ao confirmar pedido:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// FUNÇÃO AUXILIAR COM TRANSAÇÃO
 async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_id, estabelecimento_id, items) {
   
   let connection;
   try {
-    // Pegar uma conexão do pool
     connection = await mysql.getConnection();
-    
-    // Iniciar a transação
     await connection.beginTransaction();
 
-    // 1. Inserir o pedido na tabela 'pedidos'
     const pedidoQuery = `
       INSERT INTO pedidos 
       (numero_pedido, valor_total, usuario_id, estabelecimento_id)
@@ -158,42 +198,32 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
       estabelecimento_id
     ]);
 
-    // Pegar o ID do pedido que acabamos de inserir
     const novoPedidoId = pedidoResult.insertId;
 
-    // 2. Preparar a query para os itens
     const itensQuery = `
       INSERT INTO pedido_itens
       (pedido_id, produto_nome, quantidade, preco_unitario)
       VALUES (?, ?, ?, ?)
     `;
 
-    // 3. Criar um array de "promessas" de inserção (para todos os itens)
     const insercoesItens = items.map(item => {
-      // Usamos os nomes curtos (n, q, p) que definimos no metadata
       return connection.execute(itensQuery, [
         novoPedidoId,
-        item.n, // produto_nome
-        item.q, // quantidade
-        item.p  // preco_unitario
+        item.n,
+        item.q,
+        item.p
       ]);
     });
 
-    // 4. Executar todas as inserções dos itens
     await Promise.all(insercoesItens);
-
-    // 5. Se tudo deu certo (pedido e itens), comitar a transação
     await connection.commit();
 
   } catch (error) {
-    // Se algo deu errado, reverter tudo
     if (connection) {
       await connection.rollback();
     }
-    // Propaga o erro para o handleWebhook tratar
     throw error; 
   } finally {
-    // Sempre liberar a conexão de volta para o pool
     if (connection) {
       connection.release();
     }

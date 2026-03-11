@@ -2,9 +2,12 @@ const express = require("express");
 const router = express.Router();
 const pedidoController = require("../controller/pedido.controller");
 
-// Rota para criar a sessão de pagamento (esta rota usa o parser JSON)
+// Rota para criar a sessão de pagamento
 router.post("/create-checkout-session", pedidoController.criarSessaoCheckout);
 
-// A rota /webhook foi movida para o server.js para lidar com o parser 'raw'
+// ✅ NOVA ROTA: Confirmar e salvar pedido após retorno do Stripe (sem precisar do Stripe CLI)
+router.post("/confirmar-pedido", pedidoController.confirmarPedido);
+
+// A rota /webhook está no server.js para lidar com o parser 'raw'
 
 module.exports = router;
