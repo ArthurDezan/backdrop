@@ -79,7 +79,7 @@ COLLATE = utf8mb4_0900_ai_ci;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `drop`.`pedidos` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `numero_pedido` VARCHAR(50) NOT NULL,
+  `numero_pedido` VARCHAR(500) NOT NULL,
   `valor_total` DECIMAL(10,2) NOT NULL,
   `usuario_id` INT NOT NULL,
   `estabelecimento_id` INT NOT NULL,
@@ -93,6 +93,25 @@ CREATE TABLE IF NOT EXISTS `drop`.`pedidos` (
   CONSTRAINT `fk_pedidos_usuarios`
     FOREIGN KEY (`usuario_id`)
     REFERENCES `drop`.`usuarios` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `drop`.`pedido_itens`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `drop`.`pedido_itens` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `pedido_id` INT NOT NULL,
+  `produto_nome` VARCHAR(255) NOT NULL,
+  `quantidade` INT NOT NULL,
+  `preco_unitario` DECIMAL(10,2) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `pedido_id` (`pedido_id` ASC) VISIBLE,
+  CONSTRAINT `pedido_itens_ibfk_1`
+    FOREIGN KEY (`pedido_id`)
+    REFERENCES `drop`.`pedidos` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
@@ -120,6 +139,23 @@ CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
     REFERENCES `drop`.`estabelecimentos` (`id`))
 ENGINE = InnoDB
 AUTO_INCREMENT = 43
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `drop`.`recuperacao_senha`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `drop`.`recuperacao_senha` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `email` VARCHAR(255) NOT NULL,
+  `codigo` VARCHAR(6) NOT NULL,
+  `expiracao` DATETIME NOT NULL,
+  `usado` TINYINT(1) NOT NULL DEFAULT '0',
+  `criado_em` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `email` (`email` ASC) VISIBLE)
+ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
