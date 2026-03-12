@@ -7,7 +7,7 @@ const login = require("../middleware/usuario.middleware");
 router.get("/", (req, res) => res.send("Lista de usuários - API funcionando"));
 
 // Rotas públicas (não precisam de autenticação)
-router.post("/enviar-codigo", usuarioController.enviarCodigo);
+router.post("/enviar-codigo", usuarioController.enviarCodigoCadastro);
 router.post("/cadastrar", usuarioController.cadastrarUsuario);
 router.post("/login", usuarioController.loginUsuario);
 
