@@ -229,3 +229,90 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
     }
   }
 }
+
+// -----------------------------------------------------
+// GET /pedidos/loja/:estabelecimento_id
+// Lista pedidos do estabelecimento logado
+// Pode filtrar por status: ?status=Pendente
+// -----------------------------------------------------
+exports.getPedidosPorLoja = async (req, res) => {
+  const { estabelecimento_id } = req.params;
+  const { status } = req.query;
+
+  // Garante que a loja só veja seus próprios pedidos
+  if (parseInt(estabelecimento_id) !== req.loja.id) {
+    return res.status(403).json({ error: "Acesso negado" });
+  }
+
+  try {
+    let query = `
+      SELECT
+        p.id, p.numero_pedido, p.valor_total,
+        u.nome AS cliente_nome, u.sobrenome AS cliente_sobrenome,
+        pp.status, pp.criado_em,
+        GROUP_CONCAT(
+          CONCAT(pi.quantidade, 'x ', pi.produto_nome, ' (R$ ', pi.preco_unitario, ')')
+          SEPARATOR ' | '
+        ) AS itens
+      FROM pedidos p
+      JOIN usuarios u ON u.id = p.usuario_id
+      LEFT JOIN pedido_pagamentos pp ON pp.pedido_id = p.id
+      LEFT JOIN pedido_itens pi ON pi.pedido_id = p.id
+      WHERE p.estabelecimento_id = ?
+    `;
+
+    const params = [estabelecimento_id];
+
+    if (status) {
+      query += ' AND pp.status = ?';
+      params.push(status);
+    }
+
+    query += ' GROUP BY p.id ORDER BY p.id DESC';
+
+    const [rows] = await mysql.execute(query, params);
+    return res.status(200).json(rows);
+
+  } catch (error) {
+    console.error("Erro em getPedidosPorLoja:", error);
+    return res.status(500).json({ error: "Erro interno no servidor" });
+  }
+};
+
+// -----------------------------------------------------
+// PATCH /pedidos/:id/status
+// Atualiza o status de um pedido
+// Body: { status: 'Pendente' | 'Preparo' | 'Entregando' | 'Entregue' | 'Cancelado' }
+// -----------------------------------------------------
+exports.atualizarStatusPedido = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const statusValidos = ['Pendente', 'Preparo', 'Entregando', 'Entregue', 'Cancelado'];
+  if (!statusValidos.includes(status)) {
+    return res.status(400).json({ error: `Status inválido. Use: ${statusValidos.join(', ')}` });
+  }
+
+  try {
+    // Verifica se o pedido pertence à loja logada
+    const [check] = await mysql.execute(
+      'SELECT p.id FROM pedidos p WHERE p.id = ? AND p.estabelecimento_id = ?',
+      [id, req.loja.id]
+    );
+
+    if (check.length === 0) {
+      return res.status(404).json({ error: "Pedido não encontrado ou sem permissão" });
+    }
+
+    await mysql.execute(
+      'UPDATE pedido_pagamentos SET status = ? WHERE pedido_id = ?',
+      [status, id]
+    );
+
+    return res.status(200).json({ Mensagem: "Status atualizado com sucesso", status });
+
+  } catch (error) {
+    console.error("Erro em atualizarStatusPedido:", error);
+    return res.status(500).json({ error: "Erro interno no servidor" });
+  }
+};

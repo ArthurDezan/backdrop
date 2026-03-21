@@ -2,7 +2,14 @@ const db = require('../config/mysql');
 
 exports.getAllEstabelecimentos = async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM estabelecimentos');
+    const [results] = await db.query(
+      `SELECT id, nome, localizacao, tempo_de_espera,
+              logo_url, banner_url, categoria_id,
+              latitude, longitude, mapa_url
+       FROM estabelecimentos
+       WHERE ativo = 1
+       ORDER BY id ASC`
+    );
     res.json(results);
   } catch (err) {
     console.error('Erro ao executar query:', err);
@@ -10,23 +17,27 @@ exports.getAllEstabelecimentos = async (req, res) => {
   }
 };
 
-// Função para buscar um estabelecimento por ID
 exports.getEstabelecimentoById = async (req, res) => {
   try {
-    const { id } = req.params; // Pega o ID da URL, ex: o "1" de "/estabelecimentos/1"
+    const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ error: "O ID do estabelecimento é obrigatório." });
+      return res.status(400).json({ error: 'O ID do estabelecimento é obrigatório.' });
     }
 
-    const [rows] = await db.query('SELECT * FROM estabelecimentos WHERE id = ?', [id]);
+    const [rows] = await db.query(
+      `SELECT id, nome, localizacao, tempo_de_espera,
+              logo_url, banner_url, categoria_id,
+              latitude, longitude, mapa_url
+       FROM estabelecimentos
+       WHERE id = ? AND ativo = 1`,
+      [id]
+    );
 
-    // Verifica se encontrou algum resultado
     if (rows.length === 0) {
-      return res.status(404).json({ error: "Estabelecimento não encontrado." });
+      return res.status(404).json({ error: 'Estabelecimento não encontrado.' });
     }
 
-    // Retorna o primeiro (e único) resultado
     res.json(rows[0]);
 
   } catch (err) {
