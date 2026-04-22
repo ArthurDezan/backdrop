@@ -1,9 +1,49 @@
 // controller/pedido.controller.js
 require("dotenv").config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const mysql = require("../config/mysql"); // Nosso pool do banco
+const mysql = require("../config/mysql"); // O nosso pool da base de dados
 
-// 1. FUNÇÃO PARA CRIAR A SESSÃO DE CHECKOUT
+// =========================================================================
+// SERVER-SENT EVENTS (SSE) - TEMPO REAL
+// =========================================================================
+let lojasConectadas = {};
+
+// Função para abrir e manter a ligação com a loja
+exports.streamPedidos = (req, res) => {
+  const { estabelecimento_id } = req.params;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders(); 
+
+  if (!lojasConectadas[estabelecimento_id]) {
+    lojasConectadas[estabelecimento_id] = [];
+  }
+  
+  lojasConectadas[estabelecimento_id].push(res);
+  console.log(`[SSE] Loja ${estabelecimento_id} ligada para ouvir pedidos.`);
+
+  req.on('close', () => {
+    console.log(`[SSE] Loja ${estabelecimento_id} desligou-se.`);
+    lojasConectadas[estabelecimento_id] = lojasConectadas[estabelecimento_id].filter(conexao => conexao !== res);
+  });
+};
+
+// Função para disparar o aviso para a loja específica
+const avisarNovoPedido = (estabelecimento_id) => {
+  const conexoesDaLoja = lojasConectadas[estabelecimento_id];
+  if (conexoesDaLoja && conexoesDaLoja.length > 0) {
+    conexoesDaLoja.forEach(res => {
+      res.write(`data: ${JSON.stringify({ evento: 'NOVO_PEDIDO' })}\n\n`);
+    });
+    console.log(`[SSE] Aviso de novo pedido enviado para a Loja ${estabelecimento_id}`);
+  }
+};
+// =========================================================================
+
+
+// 1. FUNÇÃO PARA CRIAR A SESSÃO DE CHECKOUT (STRIPE)
 exports.criarSessaoCheckout = async (req, res) => {
   const { cartItems, usuarioId, estabelecimentoId } = req.body;
 
@@ -72,12 +112,12 @@ exports.criarPagamentoIntencao = async (req, res) => {
 };
 
 
-// 2. FUNÇÃO DO WEBHOOK (mantida, mas só funciona com Stripe CLI ativo)
+// 2. FUNÇÃO DO WEBHOOK (STRIPE)
 exports.handleWebhook = async (req, res) => {
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
   if (!endpointSecret) {
-    console.log('WEBHOOK_SECRET não definido. Rode o Stripe CLI.');
+    console.log('WEBHOOK_SECRET não definido. Execute o Stripe CLI.');
     return res.status(400).send('Webhook secret não configurado.');
   }
 
@@ -104,7 +144,7 @@ exports.handleWebhook = async (req, res) => {
     try {
       items = JSON.parse(metadata.items_json);
     } catch(e) {
-      console.error('❌ Falha ao parsear items_json:', metadata.items_json);
+      console.error('❌ Falha ao processar items_json:', metadata.items_json);
       return res.status(500).json({ error: 'items_json corrompido' });
     }
 
@@ -116,11 +156,14 @@ exports.handleWebhook = async (req, res) => {
         estabelecimentoId,
         items
       );
-      console.log(`[Sucesso] Pedido ${numeroPedido} e seus itens foram salvos no banco.`);
+      console.log(`[Sucesso] Pedido ${numeroPedido} e os seus itens foram guardados na base de dados.`);
+
+      // 🔥 MAGIA AQUI: Avisa a loja em tempo real que o pedido foi guardado!
+      avisarNovoPedido(estabelecimentoId);
 
     } catch (dbError) {
-      console.error(`[Falha DB] Erro ao salvar pedido completo ${numeroPedido}:`, dbError);
-      return res.status(500).json({ error: 'Erro ao salvar no banco' });
+      console.error(`[Falha DB] Erro ao guardar pedido completo ${numeroPedido}:`, dbError);
+      return res.status(500).json({ error: 'Erro ao guardar na base de dados' });
     }
   }
 
@@ -128,7 +171,7 @@ exports.handleWebhook = async (req, res) => {
 };
 
 
-// 3. CONFIRMAR PEDIDO via frontend (sem precisar do Stripe CLI)
+// 3. CONFIRMAR PEDIDO VIA FRONTEND
 exports.confirmarPedido = async (req, res) => {
   const { cartItems, usuarioId, estabelecimentoId, sessionId } = req.body;
 
@@ -144,7 +187,6 @@ exports.confirmarPedido = async (req, res) => {
       return res.status(402).json({ error: 'Pagamento não confirmado pelo Stripe.' });
     }
 
-    // ✅ CORRIGIDO: usa getConnection em vez de mysql.execute diretamente
     const conn = await mysql.getConnection();
     const [pedidoExistente] = await conn.execute(
       'SELECT id FROM pedidos WHERE numero_pedido = ?',
@@ -153,8 +195,8 @@ exports.confirmarPedido = async (req, res) => {
     conn.release();
 
     if (pedidoExistente.length > 0) {
-      console.log(`[Info] Pedido ${sessionId} já existe no banco. Ignorando duplicata.`);
-      return res.status(200).json({ success: true, message: 'Pedido já registrado.' });
+      console.log(`[Info] Pedido ${sessionId} já existe. Ignorando duplicado.`);
+      return res.status(200).json({ success: true, message: 'Pedido já registado.' });
     }
 
     const valorTotal = session.amount_total / 100;
@@ -167,8 +209,12 @@ exports.confirmarPedido = async (req, res) => {
       cartItems.map(p => ({ n: p.name, q: p.quantity, p: p.price }))
     );
 
-    console.log(`[Sucesso] Pedido ${sessionId} confirmado e salvo no banco.`);
-    res.status(200).json({ success: true, message: 'Pedido salvo com sucesso!' });
+    console.log(`[Sucesso] Pedido ${sessionId} confirmado e guardado.`);
+
+    // 🔥 MAGIA AQUI: Avisa a loja em tempo real!
+    avisarNovoPedido(estabelecimentoId);
+
+    res.status(200).json({ success: true, message: 'Pedido guardado com sucesso!' });
 
   } catch (error) {
     console.error('Erro ao confirmar pedido:', error);
@@ -177,7 +223,7 @@ exports.confirmarPedido = async (req, res) => {
 };
 
 
-// FUNÇÃO AUXILIAR COM TRANSAÇÃO
+// FUNÇÃO AUXILIAR COM TRANSAÇÃO (COM A CORREÇÃO DO STATUS PENDENTE)
 async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_id, estabelecimento_id, items) {
   
   let connection;
@@ -185,6 +231,7 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
     connection = await mysql.getConnection();
     await connection.beginTransaction();
 
+    // 1. Cria o pedido principal
     const pedidoQuery = `
       INSERT INTO pedidos 
       (numero_pedido, valor_total, usuario_id, estabelecimento_id)
@@ -200,6 +247,14 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
 
     const novoPedidoId = pedidoResult.insertId;
 
+    // 2. INSERE O STATUS PENDENTE NA TABELA DE PAGAMENTOS
+    const pagamentoQuery = `
+      INSERT INTO pedido_pagamentos (pedido_id, status)
+      VALUES (?, 'Pendente')
+    `;
+    await connection.execute(pagamentoQuery, [novoPedidoId]);
+
+    // 3. Guarda os itens do pedido
     const itensQuery = `
       INSERT INTO pedido_itens
       (pedido_id, produto_nome, quantidade, preco_unitario)
@@ -233,13 +288,12 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
 // -----------------------------------------------------
 // GET /pedidos/loja/:estabelecimento_id
 // Lista pedidos do estabelecimento logado
-// Pode filtrar por status: ?status=Pendente
 // -----------------------------------------------------
 exports.getPedidosPorLoja = async (req, res) => {
   const { estabelecimento_id } = req.params;
   const { status } = req.query;
 
-  // Garante que a loja só veja seus próprios pedidos
+  // Garante que a loja só veja os seus próprios pedidos
   if (parseInt(estabelecimento_id) !== req.loja.id) {
     return res.status(403).json({ error: "Acesso negado" });
   }
@@ -268,7 +322,12 @@ exports.getPedidosPorLoja = async (req, res) => {
       params.push(status);
     }
 
-    query += ' GROUP BY p.id ORDER BY p.id DESC';
+    // 🔥 CORREÇÃO AQUI: Todas as colunas incluídas no GROUP BY
+    query += ` GROUP BY 
+      p.id, p.numero_pedido, p.valor_total, 
+      u.nome, u.sobrenome, 
+      pp.status, pp.criado_em 
+      ORDER BY p.id DESC`;
 
     const [rows] = await mysql.execute(query, params);
     return res.status(200).json(rows);
@@ -282,7 +341,6 @@ exports.getPedidosPorLoja = async (req, res) => {
 // -----------------------------------------------------
 // PATCH /pedidos/:id/status
 // Atualiza o status de um pedido
-// Body: { status: 'Pendente' | 'Preparo' | 'Entregando' | 'Entregue' | 'Cancelado' }
 // -----------------------------------------------------
 exports.atualizarStatusPedido = async (req, res) => {
   const { id } = req.params;
@@ -294,7 +352,6 @@ exports.atualizarStatusPedido = async (req, res) => {
   }
 
   try {
-    // Verifica se o pedido pertence à loja logada
     const [check] = await mysql.execute(
       'SELECT p.id FROM pedidos p WHERE p.id = ? AND p.estabelecimento_id = ?',
       [id, req.loja.id]
