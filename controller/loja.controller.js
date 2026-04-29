@@ -34,8 +34,8 @@ exports.cadastrar = async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO estabelecimentos
          (nome, cnpj, email, senha, categoria_id,
-          localizacao, numero_endereco, bairro, cidade, tempo_de_espera)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          localizacao, numero_endereco, bairro, cidade, tempo_de_espera, logo_url, banner_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
       [
         nome, cnpj, email, hash, categoria_id,
         localizacao, numero_endereco,
@@ -184,17 +184,23 @@ exports.listar = async (req, res) => {
 // PUT /lojas/:id
 // -----------------------------------------------------
 exports.atualizarPerfil = async (req, res) => {
-  const { nome, localizacao, numero_endereco, bairro, cidade } = req.body;
-  const id = req.loja.id;
+  // CORREÇÃO: Recebendo as URLs das imagens do frontend
+  const { nome, localizacao, numero_endereco, bairro, cidade, logo_url, banner_url } = req.body;
+  const id = req.loja ? req.loja.id : req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ erro: 'ID da loja não encontrado' });
+  }
 
   if (!nome || !nome.trim()) {
     return res.status(400).json({ erro: 'Nome é obrigatório' });
   }
 
   try {
+    // CORREÇÃO: Inserindo logo_url e banner_url na atualização do banco
     await db.query(
       `UPDATE estabelecimentos
-       SET nome = ?, localizacao = ?, numero_endereco = ?, bairro = ?, cidade = ?
+       SET nome = ?, localizacao = ?, numero_endereco = ?, bairro = ?, cidade = ?, logo_url = ?, banner_url = ?
        WHERE id = ?`,
       [
         nome.trim(),
@@ -202,6 +208,8 @@ exports.atualizarPerfil = async (req, res) => {
         numero_endereco || null,
         bairro          || null,
         cidade          || null,
+        logo_url        || null,
+        banner_url      || null,
         id
       ]
     );

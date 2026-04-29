@@ -26,8 +26,8 @@ app.use(express.static('public'));
 app.post("/pedidos/webhook", bodyParser.raw({ type: 'application/json' }), pedidoController.handleWebhook);
 
 // 2. PARSERS GLOBAIS
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 
 // 3. REGISTRO DAS ROTAS
 app.use("/usuarios",        usuarioRoutes);
