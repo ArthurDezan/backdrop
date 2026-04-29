@@ -1,13 +1,17 @@
-const express = require("express");
-const router = express.Router();
+const express         = require("express");
+const router          = express.Router();
 const pedidoController = require("../controller/pedido.controller");
+const { authLoja }    = require("./loja.routes");
 
-// Rota para criar a sessão de pagamento
+// Rotas existentes
 router.post("/create-checkout-session", pedidoController.criarSessaoCheckout);
+router.post("/confirmar-pedido",        pedidoController.confirmarPedido);
 
-// ✅ NOVA ROTA: Confirmar e salvar pedido após retorno do Stripe (sem precisar do Stripe CLI)
-router.post("/confirmar-pedido", pedidoController.confirmarPedido);
+// Rota NOVA para a conexão em tempo real (sem authLoja para não bloquear o EventSource)
+router.get("/stream/:estabelecimento_id", pedidoController.streamPedidos);
 
-// A rota /webhook está no server.js para lidar com o parser 'raw'
+// Rotas para a loja
+router.get("/loja/:estabelecimento_id", authLoja, pedidoController.getPedidosPorLoja);
+router.patch("/:id/status",             authLoja, pedidoController.atualizarStatusPedido);
 
 module.exports = router;
