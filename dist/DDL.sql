@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS `drop`.`estabelecimentos` (
   `bairro` VARCHAR(100) NULL DEFAULT NULL,
   `cidade` VARCHAR(100) NULL DEFAULT NULL,
   `tempo_de_espera` INT NULL DEFAULT NULL,
-  `logo_url` VARCHAR(255) NULL DEFAULT NULL,
-  `banner_url` VARCHAR(255) NULL DEFAULT NULL,
+  `logo_url` LONGTEXT NULL DEFAULT NULL,
+  `banner_url` LONGTEXT NULL DEFAULT NULL,
   `categoria_id` INT NULL DEFAULT NULL,
   `latitude` DECIMAL(10,8) NULL DEFAULT NULL,
   `longitude` DECIMAL(11,8) NULL DEFAULT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`estabelecimentos` (
     FOREIGN KEY (`categoria_id`)
     REFERENCES `drop`.`categorias` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 14
+AUTO_INCREMENT = 16
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`usuarios` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
 ENGINE = InnoDB
-AUTO_INCREMENT = 8
+AUTO_INCREMENT = 9
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
     FOREIGN KEY (`estabelecimento_id`)
     REFERENCES `drop`.`estabelecimentos` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 68
+AUTO_INCREMENT = 91
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`recuperacao_senha` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `email` (`email` ASC) VISIBLE)
 ENGINE = InnoDB
-AUTO_INCREMENT = 2
+AUTO_INCREMENT = 4
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
