@@ -18,7 +18,8 @@ const pedidoController = require('./controller/pedido.controller');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" },
+crossOriginEmbedderPolicy: false, }));
 app.use(corsMiddleware);
 app.use(express.static('public'));
 
