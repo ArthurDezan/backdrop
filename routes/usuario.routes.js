@@ -13,8 +13,9 @@ router.post("/login", usuarioController.loginUsuario);
 
 // Rotas protegidas (precisam de autenticação)
 router.put("/", login.require, usuarioController.atualizarUsuario);
-
 router.get("/me", login.require, usuarioController.getUsuarioLogado);
+router.post("/senha/solicitar", login.require, usuarioController.solicitarAlteracaoSenha);
+router.put("/senha/confirmar", login.require, usuarioController.confirmarAlteracaoSenha);
 
 
 module.exports = router;

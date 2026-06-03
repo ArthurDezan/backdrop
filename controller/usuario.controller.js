@@ -238,3 +238,94 @@ exports.getUsuarioLogado = async (req, res) => {
     return res.status(500).json({ error: "Erro interno no servidor" });
   }
 };
+
+exports.solicitarAlteracaoSenha = async (req, res) => {
+  try {
+    const idUsuario = res.locals.idUsuario;
+    const conn = await mysql.getConnection();
+
+    // 1. Pega o email do usuário logado
+    const [user] = await conn.execute('SELECT email FROM usuarios WHERE id = ?', [idUsuario]);
+    if (user.length === 0) {
+      conn.release();
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+    const email = user[0].email;
+
+    // 2. Gera código e salva
+    const codigo = gerarCodigo();
+    const expiracao = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+    await conn.execute(
+      `INSERT INTO recuperacao_senha (email, codigo, expiracao, usado)
+       VALUES (?, ?, ?, 0)
+       ON DUPLICATE KEY UPDATE codigo = ?, expiracao = ?, usado = 0`,
+      [email, codigo, expiracao, codigo, expiracao]
+    );
+    conn.release();
+
+    // 3. Envia o email
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: `"Drop App" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Alteração de Senha - Drop',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 32px; background: #f9f9f9; border-radius: 12px;">
+          <h2 style="color: #A86F4C; text-align: center;">🔒 Alteração de Senha</h2>
+          <p style="color: #555; text-align: center;">Você solicitou a alteração da sua senha. Use o código abaixo no aplicativo para confirmar. Expira em <strong>15 minutos</strong>.</p>
+          <div style="background: #A86F4C; color: white; font-size: 36px; font-weight: bold; letter-spacing: 12px; text-align: center; padding: 20px; border-radius: 10px; margin: 24px 0;">
+            ${codigo}
+          </div>
+        </div>
+      `,
+    });
+
+    return res.status(200).json({ message: "Código enviado para o email." });
+  } catch (error) {
+    console.error("Erro em solicitarAlteracaoSenha:", error);
+    return res.status(500).json({ error: "Erro ao enviar código." });
+  }
+};
+
+exports.confirmarAlteracaoSenha = async (req, res) => {
+  try {
+    const idUsuario = res.locals.idUsuario;
+    const { codigo, novaSenha } = req.body;
+
+    if (!codigo || !novaSenha) {
+      return res.status(400).json({ error: "Código e nova senha são obrigatórios." });
+    }
+
+    const conn = await mysql.getConnection();
+
+    // 1. Pega o email do usuário logado
+    const [user] = await conn.execute('SELECT email FROM usuarios WHERE id = ?', [idUsuario]);
+    const email = user[0].email;
+
+    // 2. Valida o código
+    const [registros] = await conn.execute(
+      `SELECT * FROM recuperacao_senha 
+       WHERE email = ? AND codigo = ? AND usado = 0 AND expiracao > NOW()`,
+      [email, codigo]
+    );
+
+    if (registros.length === 0) {
+      conn.release();
+      return res.status(400).json({ error: 'Código inválido ou expirado.' });
+    }
+
+    // 3. Marca código como usado e salva nova senha
+    await conn.execute('UPDATE recuperacao_senha SET usado = 1 WHERE email = ?', [email]);
+    
+    const hash = await bcrypt.hash(novaSenha, 10);
+    await conn.execute('UPDATE usuarios SET senha = ? WHERE id = ?', [hash, idUsuario]);
+
+    conn.release();
+
+    return res.status(200).json({ message: "Senha atualizada com sucesso!" });
+  } catch (error) {
+    console.error("Erro em confirmarAlteracaoSenha:", error);
+    return res.status(500).json({ error: "Erro interno no servidor." });
+  }
+};
