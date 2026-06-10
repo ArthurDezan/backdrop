@@ -206,7 +206,11 @@ CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
     FOREIGN KEY (`estabelecimento_id`)
     REFERENCES `drop`.`estabelecimentos` (`id`))
 ENGINE = InnoDB
+<<<<<<< HEAD
 AUTO_INCREMENT = 115
+=======
+AUTO_INCREMENT = 114
+>>>>>>> a37745239eae92d22dad9c87b12841abbddbf6ad
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
