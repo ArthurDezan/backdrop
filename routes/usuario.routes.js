@@ -17,5 +17,10 @@ router.get("/me", login.require, usuarioController.getUsuarioLogado);
 router.post("/senha/solicitar", login.require, usuarioController.solicitarAlteracaoSenha);
 router.put("/senha/confirmar", login.require, usuarioController.confirmarAlteracaoSenha);
 
+router.get("/enderecos", login.require, usuarioController.listarEnderecos);
+router.post("/enderecos", login.require, usuarioController.cadastrarEndereco);
+router.put("/enderecos/:id", login.require, usuarioController.atualizarEndereco);
+router.delete("/enderecos/:id", login.require, usuarioController.deletarEndereco);
+
 
 module.exports = router;

@@ -1,14 +1,13 @@
 // controller/pedido.controller.js
 require("dotenv").config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const mysql = require("../config/mysql"); // O nosso pool da base de dados
+const mysql = require("../config/mysql");
 
 // =========================================================================
 // SERVER-SENT EVENTS (SSE) - TEMPO REAL
 // =========================================================================
 let lojasConectadas = {};
 
-// Função para abrir e manter a ligação com a loja
 exports.streamPedidos = (req, res) => {
   const { estabelecimento_id } = req.params;
 
@@ -30,7 +29,6 @@ exports.streamPedidos = (req, res) => {
   });
 };
 
-// Função para disparar o aviso para a loja específica
 const avisarNovoPedido = (estabelecimento_id) => {
   const conexoesDaLoja = lojasConectadas[estabelecimento_id];
   if (conexoesDaLoja && conexoesDaLoja.length > 0) {
@@ -40,10 +38,10 @@ const avisarNovoPedido = (estabelecimento_id) => {
     console.log(`[SSE] Aviso de novo pedido enviado para a Loja ${estabelecimento_id}`);
   }
 };
+
 // =========================================================================
-
-
-// 1. FUNÇÃO PARA CRIAR A SESSÃO DE CHECKOUT (STRIPE)
+// STRIPE & CHECKOUT
+// =========================================================================
 exports.criarSessaoCheckout = async (req, res) => {
   const { cartItems, usuarioId, estabelecimentoId } = req.body;
 
@@ -111,8 +109,6 @@ exports.criarPagamentoIntencao = async (req, res) => {
     }
 };
 
-
-// 2. FUNÇÃO DO WEBHOOK (STRIPE)
 exports.handleWebhook = async (req, res) => {
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
@@ -157,8 +153,6 @@ exports.handleWebhook = async (req, res) => {
         items
       );
       console.log(`[Sucesso] Pedido ${numeroPedido} e os seus itens foram guardados na base de dados.`);
-
-      // 🔥 MAGIA AQUI: Avisa a loja em tempo real que o pedido foi guardado!
       avisarNovoPedido(estabelecimentoId);
 
     } catch (dbError) {
@@ -170,8 +164,6 @@ exports.handleWebhook = async (req, res) => {
   res.status(200).json({ received: true });
 };
 
-
-// 3. CONFIRMAR PEDIDO VIA FRONTEND
 exports.confirmarPedido = async (req, res) => {
   const { cartItems, usuarioId, estabelecimentoId, sessionId } = req.body;
 
@@ -180,11 +172,10 @@ exports.confirmarPedido = async (req, res) => {
   }
 
   try {
-    // Verifica com o Stripe se a sessão realmente foi paga
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== 'paid') {
-      return res.status(402).json({ error: 'Pagamento não confirmado pelo Stripe.' });
+      return res.status(402).json({ error: 'Pagamento não confirmed pelo Stripe.' });
     }
 
     const conn = await mysql.getConnection();
@@ -210,8 +201,6 @@ exports.confirmarPedido = async (req, res) => {
     );
 
     console.log(`[Sucesso] Pedido ${sessionId} confirmado e guardado.`);
-
-    // 🔥 MAGIA AQUI: Avisa a loja em tempo real!
     avisarNovoPedido(estabelecimentoId);
 
     res.status(200).json({ success: true, message: 'Pedido guardado com sucesso!' });
@@ -222,16 +211,12 @@ exports.confirmarPedido = async (req, res) => {
   }
 };
 
-
-// FUNÇÃO AUXILIAR COM TRANSAÇÃO (COM A CORREÇÃO DO STATUS PENDENTE)
 async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_id, estabelecimento_id, items) {
-  
   let connection;
   try {
     connection = await mysql.getConnection();
     await connection.beginTransaction();
 
-    // 1. Cria o pedido principal
     const pedidoQuery = `
       INSERT INTO pedidos 
       (numero_pedido, valor_total, usuario_id, estabelecimento_id)
@@ -247,14 +232,12 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
 
     const novoPedidoId = pedidoResult.insertId;
 
-    // 2. INSERE O STATUS PENDENTE NA TABELA DE PAGAMENTOS
     const pagamentoQuery = `
       INSERT INTO pedido_pagamentos (pedido_id, status)
       VALUES (?, 'Pendente')
     `;
     await connection.execute(pagamentoQuery, [novoPedidoId]);
 
-    // 3. Guarda os itens do pedido
     const itensQuery = `
       INSERT INTO pedido_itens
       (pedido_id, produto_nome, quantidade, preco_unitario)
@@ -286,14 +269,12 @@ async function salvarPedidoCompletoNoBanco(numero_pedido, valor_total, usuario_i
 }
 
 // -----------------------------------------------------
-// GET /pedidos/loja/:estabelecimento_id
-// Lista pedidos do estabelecimento logado
+// ROTAS DE CONSULTA E GERENCIAMENTO
 // -----------------------------------------------------
 exports.getPedidosPorLoja = async (req, res) => {
   const { estabelecimento_id } = req.params;
   const { status } = req.query;
 
-  // Garante que a loja só veja os seus próprios pedidos
   if (parseInt(estabelecimento_id) !== req.loja.id) {
     return res.status(403).json({ error: "Acesso negado" });
   }
@@ -322,7 +303,6 @@ exports.getPedidosPorLoja = async (req, res) => {
       params.push(status);
     }
 
-    // 🔥 CORREÇÃO AQUI: Todas as colunas incluídas no GROUP BY
     query += ` GROUP BY 
       p.id, p.numero_pedido, p.valor_total, 
       u.nome, u.sobrenome, 
@@ -338,10 +318,6 @@ exports.getPedidosPorLoja = async (req, res) => {
   }
 };
 
-// -----------------------------------------------------
-// PATCH /pedidos/:id/status
-// Atualiza o status de um pedido
-// -----------------------------------------------------
 exports.atualizarStatusPedido = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -370,6 +346,37 @@ exports.atualizarStatusPedido = async (req, res) => {
 
   } catch (error) {
     console.error("Erro em atualizarStatusPedido:", error);
+    return res.status(500).json({ error: "Erro interno no servidor" });
+  }
+};
+
+exports.getPedidosPorUsuario = async (req, res) => {
+  try {
+    const idUsuario = res.locals.idUsuario;
+
+    let query = `
+      SELECT
+        p.id, p.numero_pedido, p.valor_total,
+        pp.status, pp.criado_em,
+        GROUP_CONCAT(
+          CONCAT(pi.quantidade, 'x ', pi.produto_nome, ' (R$ ', pi.preco_unitario, ')')
+          SEPARATOR ' | '
+        ) AS itens
+      FROM pedidos p
+      LEFT JOIN pedido_pagamentos pp ON pp.pedido_id = p.id
+      LEFT JOIN pedido_itens pi ON pi.pedido_id = p.id
+      WHERE p.usuario_id = ?
+      GROUP BY 
+        p.id, p.numero_pedido, p.valor_total, 
+        pp.status, pp.criado_em 
+      ORDER BY p.id DESC
+    `;
+
+    const [rows] = await mysql.execute(query, [idUsuario]);
+    return res.status(200).json(rows);
+
+  } catch (error) {
+    console.error("Erro em getPedidosPorUsuario:", error);
     return res.status(500).json({ error: "Erro interno no servidor" });
   }
 };

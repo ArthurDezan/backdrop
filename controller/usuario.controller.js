@@ -4,7 +4,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 
-// ✅ Transporter de email (mesmo padrão do auth.controller)
 function getTransporter() {
   return nodemailer.createTransport({
     service: 'gmail',
@@ -19,7 +18,6 @@ function gerarCodigo() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// ✅ NOVA ROTA: Envia código de verificação para o email antes do cadastro
 exports.enviarCodigoCadastro = async (req, res) => {
   const { email } = req.body;
 
@@ -30,7 +28,6 @@ exports.enviarCodigoCadastro = async (req, res) => {
   try {
     const conn = await mysql.getConnection();
 
-    // Verifica se o email já está cadastrado
     const [existente] = await conn.execute(
       'SELECT id FROM usuarios WHERE email = ?',
       [email]
@@ -42,9 +39,8 @@ exports.enviarCodigoCadastro = async (req, res) => {
     }
 
     const codigo = gerarCodigo();
-    const expiracao = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+    const expiracao = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Salva o código na tabela de recuperação (reutilizamos a mesma tabela)
     await conn.execute(
       `INSERT INTO recuperacao_senha (email, codigo, expiracao, usado)
        VALUES (?, ?, ?, 0)
@@ -75,7 +71,6 @@ exports.enviarCodigoCadastro = async (req, res) => {
 
   } catch (error) {
     console.error('=== ERRO ENVIAR CODIGO CADASTRO ===');
-    console.error('Mensagem:', error.message);
     res.status(500).json({ error: 'Erro ao enviar o código. Tente novamente.' });
   }
 };
@@ -130,7 +125,6 @@ exports.loginUsuario = async (req, res) => {
   }
 };
 
-// ✅ ATUALIZADO: Valida o código antes de salvar o usuário
 exports.cadastrarUsuario = async (req, res) => {
   try {
     const { nome, sobrenome, email, senha, endereco, numero_endereco, codigo } = req.body;
@@ -147,7 +141,6 @@ exports.cadastrarUsuario = async (req, res) => {
 
     const conn = await mysql.getConnection();
 
-    // Valida o código
     const [registros] = await conn.execute(
       `SELECT * FROM recuperacao_senha 
        WHERE email = ? AND codigo = ? AND usado = 0 AND expiracao > NOW()`,
@@ -159,7 +152,6 @@ exports.cadastrarUsuario = async (req, res) => {
       return res.status(400).json({ error: 'Código inválido ou expirado.' });
     }
 
-    // Marca o código como usado
     await conn.execute(
       'UPDATE recuperacao_senha SET usado = 1 WHERE email = ?',
       [email]
@@ -167,13 +159,27 @@ exports.cadastrarUsuario = async (req, res) => {
 
     conn.release();
 
-    // Salva o usuário normalmente
     const hash = await bcrypt.hash(senha, 10);
     const resultado = await mysql.execute(
       `INSERT INTO usuarios (nome, sobrenome, email, senha, endereco, numero_endereco)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [nome, sobrenome, email, hash, endereco, numero_endereco]
     );
+
+    if (endereco) {
+      await mysql.execute(
+        `INSERT INTO enderecos_usuario (usuario_id, titulo, rua, numero, bairro, cidade) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          resultado[0].insertId, // 🌟 CORRIGIDO AQUI: adicionado o [0] para ler o ID do array corretamente
+          'Principal',
+          endereco,
+          numero_endereco || 'S/N',
+          'Não Informado',
+          'Não Informado'
+        ]
+      );
+    }
 
     return res.status(201).json({
       Mensagem: "Usuario criado com sucesso",
@@ -190,24 +196,22 @@ exports.atualizarUsuario = async (req, res) => {
   try {
     const resultado = await mysql.execute(
       `UPDATE usuarios 
-       SET nome = ?, sobrenome = ?, email = ?, endereco = ?, numero_endereco = ?
+       SET nome = ?, sobrenome = ?, email = ?
        WHERE id = ?`,
       [
         req.body.nome,
         req.body.sobrenome,
         req.body.email,
-        req.body.endereco,
-        req.body.numero,
         res.locals.idUsuario
       ]
     );
 
     return res.status(200).json({
-      Mensagem: "Usuario atualizado com sucesso",
+      Mensagem: "Usuario updated com sucesso",
       Resultado: resultado
     });
   } catch (error) {
-    return res.status(500).json({ error });
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -244,7 +248,6 @@ exports.solicitarAlteracaoSenha = async (req, res) => {
     const idUsuario = res.locals.idUsuario;
     const conn = await mysql.getConnection();
 
-    // 1. Pega o email do usuário logado
     const [user] = await conn.execute('SELECT email FROM usuarios WHERE id = ?', [idUsuario]);
     if (user.length === 0) {
       conn.release();
@@ -252,9 +255,8 @@ exports.solicitarAlteracaoSenha = async (req, res) => {
     }
     const email = user[0].email;
 
-    // 2. Gera código e salva
     const codigo = gerarCodigo();
-    const expiracao = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    const expiracao = new Date(Date.now() + 15 * 60 * 1000);
 
     await conn.execute(
       `INSERT INTO recuperacao_senha (email, codigo, expiracao, usado)
@@ -264,7 +266,6 @@ exports.solicitarAlteracaoSenha = async (req, res) => {
     );
     conn.release();
 
-    // 3. Envia o email
     const transporter = getTransporter();
     await transporter.sendMail({
       from: `"Drop App" <${process.env.EMAIL_USER}>`,
@@ -299,11 +300,9 @@ exports.confirmarAlteracaoSenha = async (req, res) => {
 
     const conn = await mysql.getConnection();
 
-    // 1. Pega o email do usuário logado
     const [user] = await conn.execute('SELECT email FROM usuarios WHERE id = ?', [idUsuario]);
     const email = user[0].email;
 
-    // 2. Valida o código
     const [registros] = await conn.execute(
       `SELECT * FROM recuperacao_senha 
        WHERE email = ? AND codigo = ? AND usado = 0 AND expiracao > NOW()`,
@@ -315,7 +314,6 @@ exports.confirmarAlteracaoSenha = async (req, res) => {
       return res.status(400).json({ error: 'Código inválido ou expirado.' });
     }
 
-    // 3. Marca código como usado e salva nova senha
     await conn.execute('UPDATE recuperacao_senha SET usado = 1 WHERE email = ?', [email]);
     
     const hash = await bcrypt.hash(novaSenha, 10);
@@ -323,9 +321,59 @@ exports.confirmarAlteracaoSenha = async (req, res) => {
 
     conn.release();
 
-    return res.status(200).json({ message: "Senha atualizada com sucesso!" });
+    return res.status(200).json({ message: "Senha updated com sucesso!" });
   } catch (error) {
     console.error("Erro em confirmarAlteracaoSenha:", error);
     return res.status(500).json({ error: "Erro interno no servidor." });
+  }
+};
+
+exports.listarEnderecos = async (req, res) => {
+  try {
+    const [rows] = await mysql.execute(
+      "SELECT * FROM enderecos_usuario WHERE usuario_id = ?",
+      [res.locals.idUsuario]
+    );
+    return res.status(200).json(rows);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.cadastrarEndereco = async (req, res) => {
+  try {
+    const { titulo, rua, numero, bairro, cidade } = req.body;
+    const resultado = await mysql.execute(
+      "INSERT INTO enderecos_usuario (usuario_id, titulo, rua, numero, bairro, cidade) VALUES (?, ?, ?, ?, ?, ?)",
+      [res.locals.idUsuario, titulo, rua, numero, bairro, cidade]
+    );
+    return res.status(201).json({ message: "Endereço cadastrado!", id: resultado.insertId });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.atualizarEndereco = async (req, res) => {
+  try {
+    const { titulo, rua, numero, bairro, cidade } = req.body;
+    await mysql.execute(
+      "UPDATE enderecos_usuario SET titulo = ?, rua = ?, numero = ?, bairro = ?, cidade = ? WHERE id = ? AND usuario_id = ?",
+      [titulo, rua, numero, bairro, cidade, req.params.id, res.locals.idUsuario]
+    );
+    return res.status(200).json({ message: "Endereço updated!" });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deletarEndereco = async (req, res) => {
+  try {
+    await mysql.execute(
+      "DELETE FROM enderecos_usuario WHERE id = ? AND usuario_id = ?",
+      [req.params.id, res.locals.idUsuario]
+    );
+    return res.status(200).json({ message: "Endereço excluído!" });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 };
