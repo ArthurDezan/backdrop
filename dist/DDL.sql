@@ -5,9 +5,6 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
--- Schema mydb
--- -----------------------------------------------------
--- -----------------------------------------------------
 -- Schema drop
 -- -----------------------------------------------------
 
@@ -15,6 +12,22 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- Schema drop
 -- -----------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS `drop` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci ;
+-- -----------------------------------------------------
+-- Schema mydb
+-- -----------------------------------------------------
+
+-- -----------------------------------------------------
+-- Schema mydb
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8mb3 ;
+-- -----------------------------------------------------
+-- Schema saep
+-- -----------------------------------------------------
+
+-- -----------------------------------------------------
+-- Schema saep
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `saep` ;
 USE `drop` ;
 
 -- -----------------------------------------------------
@@ -26,6 +39,48 @@ CREATE TABLE IF NOT EXISTS `drop`.`categorias` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
 AUTO_INCREMENT = 5
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `drop`.`usuarios`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `drop`.`usuarios` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(100) NOT NULL,
+  `sobrenome` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(150) NOT NULL,
+  `senha` VARCHAR(255) NOT NULL,
+  `endereco` VARCHAR(200) NULL DEFAULT NULL,
+  `numero_endereco` VARCHAR(10) NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
+ENGINE = InnoDB
+AUTO_INCREMENT = 14
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `drop`.`enderecos_usuario`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `drop`.`enderecos_usuario` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT NOT NULL,
+  `titulo` VARCHAR(50) NOT NULL,
+  `rua` VARCHAR(255) NOT NULL,
+  `numero` VARCHAR(20) NOT NULL,
+  `bairro` VARCHAR(100) NOT NULL,
+  `cidade` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `usuario_id` (`usuario_id` ASC) VISIBLE,
+  CONSTRAINT `enderecos_usuario_ibfk_1`
+    FOREIGN KEY (`usuario_id`)
+    REFERENCES `drop`.`usuarios` (`id`)
+    ON DELETE CASCADE)
+ENGINE = InnoDB
+AUTO_INCREMENT = 2
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -60,26 +115,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`estabelecimentos` (
     FOREIGN KEY (`categoria_id`)
     REFERENCES `drop`.`categorias` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 16
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
-
-
--- -----------------------------------------------------
--- Table `drop`.`usuarios`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `drop`.`usuarios` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `nome` VARCHAR(100) NOT NULL,
-  `sobrenome` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(150) NOT NULL,
-  `senha` VARCHAR(255) NOT NULL,
-  `endereco` VARCHAR(200) NULL DEFAULT NULL,
-  `numero_endereco` VARCHAR(10) NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE)
-ENGINE = InnoDB
-AUTO_INCREMENT = 9
+AUTO_INCREMENT = 17
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -104,7 +140,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`pedidos` (
     FOREIGN KEY (`usuario_id`)
     REFERENCES `drop`.`usuarios` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 7
+AUTO_INCREMENT = 8
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -124,7 +160,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`pedido_itens` (
     FOREIGN KEY (`pedido_id`)
     REFERENCES `drop`.`pedidos` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 7
+AUTO_INCREMENT = 8
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -144,7 +180,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`pedido_pagamentos` (
     REFERENCES `drop`.`pedidos` (`id`)
     ON DELETE CASCADE)
 ENGINE = InnoDB
-AUTO_INCREMENT = 6
+AUTO_INCREMENT = 7
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -170,7 +206,7 @@ CREATE TABLE IF NOT EXISTS `drop`.`produtos` (
     FOREIGN KEY (`estabelecimento_id`)
     REFERENCES `drop`.`estabelecimentos` (`id`))
 ENGINE = InnoDB
-AUTO_INCREMENT = 91
+AUTO_INCREMENT = 115
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
@@ -188,10 +224,110 @@ CREATE TABLE IF NOT EXISTS `drop`.`recuperacao_senha` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `email` (`email` ASC) VISIBLE)
 ENGINE = InnoDB
-AUTO_INCREMENT = 4
+AUTO_INCREMENT = 11
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci;
 
+USE `mydb` ;
+
+-- -----------------------------------------------------
+-- Table `mydb`.`pilotos`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`pilotos` (
+  `idpilotos` INT NOT NULL,
+  `classificacao` INT NOT NULL DEFAULT '0',
+  `nome` VARCHAR(200) NOT NULL,
+  `equipe` VARCHAR(200) NOT NULL,
+  `nacionalidade` VARCHAR(200) NOT NULL,
+  PRIMARY KEY (`idpilotos`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`equipes`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`equipes` (
+  `idequipes` INT NOT NULL,
+  `piloto` VARCHAR(200) NOT NULL,
+  `posicao` INT NOT NULL,
+  `pilotos_idpilotos` INT NOT NULL,
+  PRIMARY KEY (`idequipes`),
+  INDEX `fk_equipes_pilotos1_idx` (`pilotos_idpilotos` ASC) VISIBLE,
+  CONSTRAINT `fk_equipes_pilotos1`
+    FOREIGN KEY (`pilotos_idpilotos`)
+    REFERENCES `mydb`.`pilotos` (`idpilotos`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`corridas`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`corridas` (
+  `idcorridas` INT NOT NULL,
+  `clima` VARCHAR(45) NULL DEFAULT NULL,
+  `classificacao` VARCHAR(45) NULL DEFAULT NULL,
+  `equipes_idequipes` INT NOT NULL,
+  PRIMARY KEY (`idcorridas`),
+  INDEX `fk_corridas_equipes1_idx` (`equipes_idequipes` ASC) VISIBLE,
+  CONSTRAINT `fk_corridas_equipes1`
+    FOREIGN KEY (`equipes_idequipes`)
+    REFERENCES `mydb`.`equipes` (`idequipes`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`gp`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`gp` (
+  `idgp` INT NOT NULL,
+  `nome_pista` VARCHAR(45) NOT NULL,
+  `lugar` VARCHAR(200) NOT NULL,
+  `tamanho` VARCHAR(200) NOT NULL,
+  `curvas` VARCHAR(200) NOT NULL)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`movimentacoes`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`movimentacoes` (
+  `id` INT NOT NULL,
+  `data` DATE NOT NULL,
+  `tipo` VARCHAR(10) NOT NULL,
+  `quantidade` INT NOT NULL,
+  `produtos_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_movimentacoes_produtos_idx` (`produtos_id` ASC) VISIBLE,
+  CONSTRAINT `fk_movimentacoes_produtos`
+    FOREIGN KEY (`produtos_id`)
+    REFERENCES `saep`.`produtos` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`pilotos_has_corridas`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`pilotos_has_corridas` (
+  `pilotos_idpilotos` INT NOT NULL,
+  `corridas_idcorridas` INT NOT NULL,
+  PRIMARY KEY (`pilotos_idpilotos`, `corridas_idcorridas`),
+  INDEX `fk_pilotos_has_corridas_corridas1_idx` (`corridas_idcorridas` ASC) VISIBLE,
+  INDEX `fk_pilotos_has_corridas_pilotos1_idx` (`pilotos_idpilotos` ASC) VISIBLE,
+  CONSTRAINT `fk_pilotos_has_corridas_corridas1`
+    FOREIGN KEY (`corridas_idcorridas`)
+    REFERENCES `mydb`.`corridas` (`idcorridas`),
+  CONSTRAINT `fk_pilotos_has_corridas_pilotos1`
+    FOREIGN KEY (`pilotos_idpilotos`)
+    REFERENCES `mydb`.`pilotos` (`idpilotos`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+USE `saep` ;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
